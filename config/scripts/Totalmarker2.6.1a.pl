@@ -1,20 +1,18 @@
 ####################################
 # ORIGINALLY WRITTEN BY MICHAEL DEAR
+# 
+# Modified by Matthew Coblentz 
+# 18 August 2024
+# Original effort by Michael Dear gratefully acknowledged as this would not
+# be possible otherwise.  
+# 
+# Major driver for this effort is the intent to move major funtionality into
+# Perl modules rather than local subroutines, modernize external file
+# fetching, and use of STRICT and WARNINGS requires specific code cleanup in 
+# main script.
 ####################################
 
 #! /usr/bin/perl
-
-#perl2exe_include "Bzip2.pm";
-#perl2exe_include "FileSpec.pm";
-
-#perl2exe_include "C:/Perl2exe/v11/pm/FileSpec.pm";
-#perl2exe_include "C:/Perl2exe/v11/pm/Bzip2.pm";
-#perl2exe_include "C:/Perl2exe/v11/pm/FindBin.pm";
-
-BEGIN {
-    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  get_hurricanedata  WriteoutVolcano  get_volcanodata  update_file  get_eclipsedata  readineclipseindex  readineclipsetrack  datacurrent  writeouteclipsemarker  writeouteclipsearcboarder  writeouteclipsearccenter  writeouteclipsefilesnone  writeouteclipselabel  refinedata  get_settings  easteregg
-    $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i );
-}
 use strict;
 use warnings;
 use FindBin qw($Script $Bin);
@@ -31,22 +29,152 @@ use Getopt::Std;
 use POSIX;
 use Cwd;
 
-use lib 'C:\Users\mcoblent\onedrive\xplanet\xplanet-1.3.0\xplanet\config\scripts';
+# Adjust this path to where the module files are located
+use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scripts';  
 
-use CloudUpdate qw(cloud_update);  # Import the cloud_update subroutine
+
+use Hurricane;
+use Label;
+use CloudUpdate qw(
+    cloud_update
+    );
+#use Norad qw(
+#    get_noraddata 
+#    norad_checked 
+#    update_file
+#    );#
+
+#use Earthquake qw(
+#    drawcircle 
+#    max_model 
+#    max_min_model 
+#    standard_model 
+#    colourisetext 
+#    colourisemag 
+#    WriteoutQuake 
+#    get_Correct_quake_Feed 
+#    get_quakedata
+#    );
+#use Volcano qw(
+#    WriteoutVolcano
+#    get_volcanodata
+#    );
+#use Eclipse qw(
+#    readineclipseindex
+#    readineclipsetrack
+#    datacurrent
+#    writeouteclipsemarker
+#    writeouteclipsearcboarder
+#    writeouteclipsearccenter
+#    writeouteclipsefilesnone
+#    writeouteclipselabel
+#    refinedata
+#    );
+#use EasterEgg qw(easteregg
+#    ); 
+#use Globals qw(
+#    $quakesettings 
+#    $settings 
+#    $quake_marker_file 
+#    @quakedata 
+#    $quake_location 
+#    set_quake_marker_file 
+#    set_quakedata 
+#    set_quake_location #
+
+#    $noradsettings 
+#    $isstle_file 
+#    $iss_file 
+#    $xplanet_satellites_dir 
+#    $iss_location 
+#    $hst_location 
+#    $sts_location 
+#    $other_locations1 
+#    $xplanet_images_dir#
+
+#    set_pversion#
+
+#    $volcano_marker_file
+#    $volcano_location
+#    );
+
+#perl2exe_include "Bzip2.pm";
+#perl2exe_include "FileSpec.pm";
+
+#perl2exe_include "C:/Perl2exe/v11/pm/FileSpec.pm";
+#perl2exe_include "C:/Perl2exe/v11/pm/Bzip2.pm";
+#perl2exe_include "C:/Perl2exe/v11/pm/FindBin.pm";
+
+
+# Breakdown of this section's intent
+# BEGIN { ... }: 
+#
+#   The BEGIN block ensures that the code inside it is executed during the compilation phase, before any other code in 
+#   the script runs. 
+#
+# $^X:
+#   $^X is a special Perl variable that holds the name of the Perl binary being used to run the script. 
+#   This is usually something like perl or perl.exe. 
+#
+# $0:
+#   $0 is a special Perl variable that holds the name of the file containing the Perl script being executed.
+#
+# $^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i:
+#   This regular expression checks whether $^X ends with perl or perl.exe. The i at the end of the regex makes it 
+#   case-insensitive.
+#
+#   (^|[/\\]): This part ensures that perl or perl.exe appears either at the beginning of the string or is preceded by a 
+#   forward slash (/) or backslash (\), which are common directory separators.
+#
+# $0 = $^X unless ...:
+#   This line sets $0 (the name of the script) to $^X (the name of the Perl interpreter) unless $^X already matches the 
+#   regex pattern. In other words, it changes the script's name to the Perl interpreter's name unless the interpreter's 
+#   name is already something like perl or perl.exe.
+# 
+# Purpose
+#   The purpose of this line is to set the script name ($0) to the name of the Perl interpreter ($^X) unless the 
+#   interpreter is already named perl or perl.exe. This can be useful in scenarios where the script might be running 
+#   under a different Perl interpreter or under a different name, and you want to standardize it to use the interpreter's 
+#   name.
+#
+# Example Scenario
+#   If the script is executed with a non-standard Perl interpreter, such as my_perl, this line will set $0 to my_perl. 
+#   However, if the interpreter is the standard perl or perl.exe, $0 remains unchanged.
+#
+# Summary
+#   The line effectively changes the script's name to the Perl interpreter's name unless the interpreter is already a 
+#   common name (perl or perl.exe). This can be a useful way to ensure consistency in how the script identifies itself, 
+#   especially in environments where multiple Perl interpreters are used.
+BEGIN {
+    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  get_hurricanedata  WriteoutVolcano  get_volcanodata  
+    # update_file  get_eclipsedata  readineclipseindex  readineclipsetrack  datacurrent  writeouteclipsemarker  writeouteclipsearcboarder  
+    #writeouteclipsearccenter  writeouteclipsefilesnone  writeouteclipselabel  refinedata  get_settings  easteregg
+    $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i );
+}
+
 #use Mozilla::CA;
 
 our $VERSION="2.6.1";
-my $Client = "Client Edition";
-my $Script = "TotalMarker";
+our $Client = "Client Edition";
+our $Script = "TotalMarker";
 
 ################################################################################################
 #
 #
-#        Configuaration section.  Please Check these varibles and adjust
+#        Configuaration section.  Please Check these variables and adjust
 #
 #
 ################################################################################################
+#
+# Declaring variables before they are used...
+#
+# Declare the variables used for updating labels
+my $update_earth = 0;        # Set to the appropriate value
+my $update_norad = 0;        # Set to the appropriate value
+my $update_cloud = 0;        # Set to the appropriate value
+my $update_hurricane = 0;    # Set to the appropriate value
+my $update_volcano = 0;      # Set to the appropriate value
+my $update_label = 0;        # Set to the appropriate value
 #
 # Orgininal Location of the downloads
 #
@@ -67,30 +195,33 @@ my $eclipse_location = "https://sunearth.gsfc.nasa.gov/eclipse/SEpath/";
 my $refined_eclipse_data = "https://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
 #my $cloud_image_base = "https://xplanetclouds.com/free/coral/";
 my $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
+
+# Example usage of CloudUpdate module
 my $cloud_image_url = "http://secure.xericdesign.com/xplanet/clouds/8192/clouds-8192.jpg";
-my $cloud_username = "XP100-EFD5M-SEW3F-GW3PV";
-my $cloud_password = "v5mmVrDRgTJ5";
-my $cloud_file_path = "clouds-8192.jpeg";
+# my $cloud_username = "XP100-EFD5M-SEW3F-GW3PV";
+# my $cloud_password = "v5mmVrDRgTJ5";
+my $cloud_file_name = "clouds-8192.jpeg";
 
 my $volcano_location_RSS_24H = "https://earthquake.usgs.gov/eqcenter/recenteqsww/catalogs/caprss1days2.5.xml";
 
-my $quake_location_CSV_24H_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.csv";
-my $quake_location_CSV_24H_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.csv";
-my $quake_location_CSV_24H_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.csv";
-my $quake_location_CSV_24H_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.csv";
-my $quake_location_CSV_24H_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv";
 
-my $quake_location_CSV_7D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.csv";
-my $quake_location_CSV_7D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.csv";
-my $quake_location_CSV_7D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.csv";
-my $quake_location_CSV_7D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.csv";
-my $quake_location_CSV_7D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+# my $quake_location_CSV_24H_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.csv";
+# my $quake_location_CSV_24H_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.csv";
+# my $quake_location_CSV_24H_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.csv";
+# my $quake_location_CSV_24H_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.csv";
+# my $quake_location_CSV_24H_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv";
 
-my $quake_location_CSV_30D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.csv";
-my $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv";
-my $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
-my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
-my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
+# my $quake_location_CSV_7D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.csv";
+# my $quake_location_CSV_7D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.csv";
+# my $quake_location_CSV_7D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.csv";
+# my $quake_location_CSV_7D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.csv";
+# my $quake_location_CSV_7D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+
+# my $quake_location_CSV_30D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.csv";
+# my $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv";
+# my $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
+# my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
+# my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
 
 my $ua = LWP::UserAgent->new();
 $ua->env_proxy();
@@ -101,6 +232,7 @@ $ua->agent("Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 9.1)");
 #
 # Directory Layout
 #
+my $ENV;
 # my $xplanet_dir = $ENV{'XPLANET_DIR'} || "/usr/X11R6/share/xplanet";
 my $xplanet_dir = $ENV{'XPLANET_DIR'} || "C:\\Users\\mcoblent\\onedrive\\xplanet\\xplanet-1.3.0\\xplanet";
 
@@ -124,6 +256,10 @@ my $xplanet_config_dir = $ENV{'XPLANET_CONFIG_DIR'} || "$xplanet_dir\\config";
 #
 # where the quake marker will be written to
 my $quake_marker_file = " $xplanet_markers_dir\\quake";
+
+# add $quake_marker_file to the Globals module
+# Set the value of $quake_marker_file using the setter function
+set_quake_marker_file(my $quake_marker_file_value);
 
 # where the volcano marker will be written to
 my $volcano_marker_file = " $xplanet_markers_dir\\volcano";
@@ -176,8 +312,8 @@ my $winxplanetbgbackup = "xplanet_config_dir\\winXPlanetBG.ini";
 -d $xplanet_dir         || die("Could not find xplanet installation directory $xplanet_dir\n");
 -r $xplanet_dir         || die("Could not read from xplanet installation directory $xplanet_dir\n");
 -w $xplanet_dir         || die("Could not write to xplanet installation directory $xplanet_dir\n");
--e $eclipse_data_file   || &install(eclipsfile);
--e $settings_ini_file   || &install(configfile);
+-e $eclipse_data_file   || &install("eclipsfile");
+-e $settings_ini_file   || &install("configfile");
 
 -d $xplanet_markers_dir || die("Could not find xplanet markers directory $xplanet_markers_dir\n");
 -r $xplanet_markers_dir || die("Could not read from xplanet markers directory $xplanet_markers_dir\n");
@@ -203,15 +339,26 @@ if ( (-e $readfile) && (-r $readfile) ) {
     &get_xml_update;
 }
 
+# Example usage of Earthquake module
+Earthquake::get_Correct_quake_Feed($quakesettings);
+my $counter = Earthquake::get_quakedata($quakesettings);
+Earthquake::WriteoutQuake($counter, $quakesettings);
 
+my $hurricane_counter = Hurricane::get_hurricane_data_count();
+my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_counter);
+Hurricane::WriteoutHurricane($hurricane_counter);
+Hurricane::WriteoutHurricaneArc($hurricane_counter, $actcounter, $forcounter);
 
-sub get_webpage($) {
-    my ($URL)=@_;
-    my $req = HTTP::Request->new(GET => $URL);
-    my $res = $ua->request($req);
-    
-    return $res->content || return 'FAILED';
-}
+# Label update code
+Label::WriteoutLabel($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label);
+
+#sub get_webpage($) {
+#    my ($URL)=@_;
+#    my $req = HTTP::Request->new(GET => $URL);
+#    my $res = $ua->request($req);
+#    
+#    return $res->content || return 'FAILED';
+#}
 
 sub command_line {
     my $quake_on_off = 0;
@@ -276,101 +423,99 @@ sub command_line {
 }
 
 
-sub get_program_version () {
+sub get_program_version {
     my $programversion = `xplanet --version`;
-    foreach (split("\n",$programversion)) {
-        if ($_ =~ /Xplanet/) {
-            s/ //g;
-            s/Xplanet//g;
+    foreach (split("\n", $programversion)) {
+        if (/Xplanet/) {
+            s/\s+//g;  # Remove all spaces
+            s/Xplanet//g;  # Remove the string "Xplanet"
             return $_;
         }
     }
+    return "Unknown version";  # Default return value if "Xplanet" is not found
 }
 
-sub changelog_print {
-    my ($oldversion) = @_;
-
-    # header
+sub changelog_print () {
+    my $oldversion = @_;
+    #header
     print "Present Version is $VERSION. Installed settings file version is $oldversion\n";
     print "This is the Changelog from versions $oldversion to $VERSION\n";
-
-    # changelog
+    #changelog
     my $flag = 99999;
-    if ($oldversion =~ /1/)         { $flag = 1; }
-    if ($oldversion =~ /1.03.1/)    { $flag = 1; }
-    if ($oldversion =~ /1.03.2/)    { $flag = 2; }
-    if ($oldversion =~ /1.03.3/)    { $flag = 3; }
-    if ($oldversion =~ /1.03.4/)    { $flag = 4; }
-    if ($oldversion =~ /2.5.0/)     { $flag = 5; }
-    if ($oldversion =~ /2.5.1/)     { $flag = 6; }
-    if ($oldversion =~ /2.5.2/)     { $flag = 7; }
-    if ($oldversion =~ /2.5.6/)     { $flag = 8; }
-    if ($oldversion =~ /3.0.0/)     { $flag = 9; }
-    if ($oldversion =~ /all/)       { $flag = 6; }
-
+    if ($oldversion =~ /1/)         {$flag = 1;}
+    if ($oldversion =~ /1.03.1/)    {$flag = 1;}
+    if ($oldversion =~ /1.03.2/)    {$flag = 2;}
+    if ($oldversion =~ /1.03.3/)    {$flag = 3;}
+    if ($oldversion =~ /1.03.4/)    {$flag = 4;}
+    if ($oldversion =~ /2.5.0/)     {$flag = 5;}
+    if ($oldversion =~ /2.5.1/)     {$flag = 6;}
+    if ($oldversion =~ /2.5.2/)     {$flag = 7;}
+    if ($oldversion =~ /2.5.6/)     {$flag = 8;}
+    if ($oldversion =~ /3.0.0/)     {$flag = 9;}
+    if ($oldversion =~ /all/)       {$flag = 6;}
     if ($flag == 1) {
-        print "\n *1.03.2\n";
-        print "  Added a Satellite file name option. i.e. NoradFileName=tm (*)\n";
-        print "  Added a Eclipse notification in hours. i.e. EclipseNotifyTimeHours=48 (*)\n";
-        print "  Fixed the after event notification for Eclipses\n";
-        print "  Added a version Option. -version\n";
-        print "  Added an install option to update files and setup it self up\n";
-        print "  Made it so that it knows about XplanetNG\n";
-        print "  Moved the settings and data files to /config for use with XplanetNG\n";
-        print "  Fixed a Earthquake bug that would not show some Earthquakes\n";
-        print "  If the data fails to give a magnitude 0.0 will show and a circle of 4 is drawn\n";
-        if ($VERSION =~ /1.03.2/) { $flag = 99999; }
+        print"\n *1.03.2\n";
+        print"  Added a Satellite file name option. i.e. NoradFileName=tm (*)\n";
+        print"  Added a Eclipse notification in hours. i.e. EclipseNotifyTimeHours=48 (*)\n";
+        print"  Fixed the after event notification for Eclipses\n";
+        print"  Added a version Option. -version\n";
+        print"  Added an install option to update files and setup it self up\n";
+        print"  Made it so that it knows about XplanetNG\n";
+        print"  Moved the settings and data files to /config for use with XplanetNG\n";
+        print"  Fixed a Earthquake bug that would not show some Earthquakes\n";
+        print"  If the data fails to give a magnitude 0.0 will show and a circle of 4 is drawn\n";
+        if ($VERSION =~ /1.03.2/) {$flag = 99999;}
     }
     if ($flag <= 2) {
-        print "\n *1.03.2\n";
-        print "  Symbolsize has changed for version 0.95 and above Earthquakes circles work as\n before Volcano need changing to 2,4,6 in ini file\nAdded an option to download the cloud image.\n";
-        if ($VERSION =~ /1.03.3/) { $flag = 99999; }
+        print"\n *1.03.2\n";
+        print"  Symbolsize has changed for version 0.95 and above Earthquakes circles work as\n before Volcano need changing to 2,4,6 in ini file\nAdded an option to download the cloud image.\n";
+        if ($VERSION =~ /1.03.3/) {$flag = 99999;}
     }
     if ($flag <= 3) {
-        print "\n *2.04.1\n";
-        print "  Fixed Labels\nAdded a modem option for labelupdate\nChanged version to internal version numbering.\nDefaults to downloading TLE of Science Orbits";
-        if ($VERSION =~ /1.03.4/) { $flag = 99999; }
+        print"\n *2.04.1\n";
+        print"  Fixed Labels\nAdded a modem option for labelupdate\nChanged version to internal version numbering.\nDefaults to downloading TLE of Science Orbits";
+        if ($VERSION =~ /1.03.4/) {$flag = 99999;}
     }
     if ($flag <= 4) {
-        print "\n *2.04.2\n";
-        print "  Fixed miss labeled QuakeMinSize to QuakeMinimumSize\nAdded the Option for Soyuz\nAdded a flag of Xplanet version.\n ";
-        if ($VERSION =~ /1.03.5/) { $flag = 99999; }
+        print"\n *2.04.2\n";
+        print"  Fixed miss labeled QuakeMinSize to QuakeMinimumSize\nAdded the Option for Soyuz\nAdded a flag of Xplanet version.\n ";
+        if ($VERSION =~ /1.03.5/) {$flag = 99999;}
     }
     if ($flag <= 5) {
-        print "\n *2.5.0\n";
-        print "  Versions changed to match internal CVS\nInternal chages made and setup for Xplanet 1.0 or better";
-        if ($VERSION =~ /1.03.6/) { $flag = 99999; }
+        print"\n *2.5.0\n";
+        print"  Versions changed to match internal CVS\nInternal chages made and setup for Xplanet 1.0 or better";
+        if ($VERSION =~ /1.03.6/) {$flag = 99999;}
     }
     if ($flag <= 6) {
-        print "\n *2.5.1\n";
-        print "  USGS changed pages, a rewrite of the quake data to get it working again.\nFixed minor bugs in quake and storm details.";
-        if ($VERSION =~ /1.03.7/) { $flag = 99999; }
+        print"\n *2.5.1\n";
+        print"  USGS changed pages, a rewrite of the quake data to get it working again.\nFixed minor bugs in quake and storm details.";
+        if ($VERSION =~ /1.03.7/) {$flag = 99999;}
     }
     if ($flag <= 7) {
-        print "\n *2.5.2\n";
-        print "  Fixed Storms not working over to new website.\n";
-        if ($VERSION =~ /1.03.7/) { $flag = 99999; }
+        print"\n *2.5.2\n";
+        print"  Fixed Storms not working over to new website.\n";
+        if ($VERSION =~ /1.03.7/) {$flag = 99999;}
     }
     if ($flag <= 8) {
-        print "\n *2.5.6\n";
-        print "  Fixed Storms and Earthquakes not working over to new website.\n";
-        if ($VERSION =~ /1.03.7/) { $flag = 99999; }
-        print "\n *2.5.7\n";
-        print "  Fixed Storms Track added a difference check as source data was wrong, sorted by ignoring data that is +/- 5 f last reported postiion for past data.\n";
+        print"\n *2.5.6\n";
+        print"  Fixed Storms and Earthquakes not working over to new website.\n";
+        if ($VERSION =~ /1.03.7/) {$flag = 99999;}
+        print"\n *2.5.7\n";
+        print"  Fixed Storms Track added a difference check as source data was wrong, sorted by ignoring data that is +/- 5 f last reported postiion for past data.\n";
     }
     if ($flag <= 9) {
-        print "\n 3.0.0\n";
-        print "  Using RSS where possable\n";
-        print "  Moved to new platform\n";
-        if ($VERSION =~ /1.03.7/) { $flag = 99999; }
+        print"\n 3.0.0\n";
+        print"  Using RSS where possable\n";
+        print"  Moved to new platform\n";
+        if ($VERSION =~ /1.03.7/) {$flag = 99999;}
     }
-    # ending
-    print "\nThe items with a (*) by them are accessible if you allow totalmarker to update its files. To add the extra settings to TotalMarker please run:\n\"TotalMarker -install totalmarker patch\" without the quotes.\n";
-    print "\nTo see the entire log please type \n\"TotalMarker -install totalmarker |more\" with out the quotes.\n";
-    print "\nVersion: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet";
+    #ending
+    print"\nThe items with a (*) by them are accessible if you allow totalmarker to update its files. To add the extra settings to TotalMarker please run:\n\"TotalMarker -install totalmarker patch\" without the quotes.\n";
+    print"\nTo see the entire log please type \n\"TotalMarker -install totalmarker |more\" with out the quotes.\n";
+    print"\nVersion: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet";
     exit 1;
+    die;
 }
-
 
 sub get_it_right_install {
     print <<EOM;
@@ -398,7 +543,7 @@ run this option.
 Version: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet
 EOM
     exit 1;
-    die;
+    
 }
 
 sub get_it_right_lamer {
@@ -411,8 +556,10 @@ This script is driven by the command line, the options are as follows
 * $Script -Norad      This will write the ISS and ISS.TLE files.
 * $Script -Volcano    This will write the Volcano marker file.
 * $Script -Clouds     This will download the latest cloud image.
+
 Eclipses and Updatelabel are controlled from the ini file.
 If you are using an old totalmarker then run totalmarker -update
+
 Options are set from the ini file.  This is created the first time the
 file is run.  Please note it does require an Internet connection for
 the first run, as it builds a database for the eclipses.
@@ -428,7 +575,6 @@ Then add the following to your xplanets config file under earths section
 Version: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet
 EOM
     exit 1;
-    die;
 }
 
 # Return codes of 200 to 299 are "success" in HTTP-speak
@@ -442,20 +588,20 @@ sub IndicatesSuccess () {
 sub GetRandomMirror() {
     # Populate a list of mirrors
     my @Mirrors;
-    if ($cloudsettings->{'CloudMirrorA'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorA'}";}
-    if ($cloudsettings->{'CloudMirrorB'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorB'}";}
-    if ($cloudsettings->{'CloudMirrorC'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorC'}";}
-    if ($cloudsettings->{'CloudMirrorD'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorD'}";}
-    if ($cloudsettings->{'CloudMirrorE'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorE'}";}
-    if ($cloudsettings->{'CloudMirrorF'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorF'}";}
-    if ($cloudsettings->{'CloudMirrorG'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorG'}";}
-    if ($cloudsettings->{'CloudMirrorH'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorH'}";}
-    if ($cloudsettings->{'CloudMirrorI'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorI'}";}
-    if ($cloudsettings->{'CloudMirrorJ'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorJ'}";}
-    if ($cloudsettings->{'CloudMirrorK'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorK'}";}
-    if ($cloudsettings->{'CloudMirrorL'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorL'}";}
-    if ($cloudsettings->{'CloudMirrorM'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorM'}";}
-    if ($cloudsettings->{'CloudMirrorN'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorN'}";}
+    if (my $cloudsettings->{'CloudMirrorA'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorA'}";}
+    if (my $cloudsettings->{'CloudMirrorB'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorB'}";}
+    if (my $cloudsettings->{'CloudMirrorC'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorC'}";}
+    if (my $cloudsettings->{'CloudMirrorD'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorD'}";}
+    if (my $cloudsettings->{'CloudMirrorE'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorE'}";}
+    if (my $cloudsettings->{'CloudMirrorF'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorF'}";}
+    if (my $cloudsettings->{'CloudMirrorG'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorG'}";}
+    if (my $cloudsettings->{'CloudMirrorH'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorH'}";}
+    if (my $cloudsettings->{'CloudMirrorI'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorI'}";}
+    if (my $cloudsettings->{'CloudMirrorJ'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorJ'}";}
+    if (my $cloudsettings->{'CloudMirrorK'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorK'}";}
+    if (my $cloudsettings->{'CloudMirrorL'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorL'}";}
+    if (my $cloudsettings->{'CloudMirrorM'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorM'}";}
+    if (my $cloudsettings->{'CloudMirrorN'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorN'}";}
     
     # Return one at random
     return $Mirrors[rand scalar(@Mirrors)];
@@ -485,84 +631,15 @@ sub GetRandomMirror() {
 #     }
 # }
 
-sub file_header($) {
-    my ($openfile) = @_;
-    print MF "# This $openfile marker file created by $Script - $Client version $VERSION\n";
-    print MF "# For more information read the top of the $Script file or go to\n";
-    print MF "# http://www.wizabit.eclipse.co.uk/xplanet\n";
-    $tsn = localtime(time);
-    print MF "# Last Updated: $tsn\n#\n";
-}
+#sub file_header($) {
+#    my ($openfile) = @_;
+#    print MF "# This $openfile marker file created by $Script - $Client version $VERSION\n";
+#    print MF "# For more information read the top of the $Script file or go to\n";
+#    print MF "# http://www.wizabit.eclipse.co.uk/xplanet\n";
+#    my $tsn = localtime(time);
+#    print MF "# Last Updated: $tsn\n#\n";
+#}
 
-sub drawcircle($) {
-    my ($mag)=@_;
-    my $pixel;
-    
-    if ($quakesettings->{'QuakePixelMax'} =~ /\d/ && $quakesettings->{'QuakePixelMin'} !~ /\d/) {
-        $pixel = max_model($mag);
-    } elsif ($quakesettings->{'QuakePixelMax'} !~ /\d/ && $quakesettings->{'QuakePixelMin'} =~ /\d/) {
-        $pixel = standard_model($mag);
-        $pixel = $pixel + $quakesettings->{'QuakePixelMin'};
-    } elsif ($quakesettings->{'QuakePixelMax'} =~ /\d/ && $quakesettings->{'QuakePixelMin'} =~ /\d/) {
-        $pixel = max_min_model($mag);
-    } else {
-        $pixel = standard_model($mag);
-    }
-    
-    if ($settings->{'XplanetVersion'} =~ /\w/) {
-        if  ($settings->{'XplanetVersion'} =~ /es/) {
-            return $pixel;
-        }
-		else {
-            my $xplanetversion = &get_program_version();
-            
-            if ($xplanetversion =~ /(\d.\d\d)(\w)/) {
-                my ($pversion,$prevision) = ($1,$2);
-                $pversion *= 1;
-            }
-            
-            if ($pversion < 0.99) {
-                $pixel = $pixel*2;
-            }
-            
-			return $pixel; 
-		}
-	}
-}
-
-sub max_model() {
-    my ($mag)=@_;
-    my $pixel = $quakesettings->{'QuakePixelMax'} / 10;
-    
-    $pixel = $pixel * $mag;
-    
-    return $pixel;
-}
-
-sub max_min_model() {
-    my ($mag)=@_;
-    my $max_pixel = $quakesettings->{'QuakePixelMax'};
-    my $min_pixel = $quakesettings->{'QuakePixelMin'};
-    my $pixel_diff = $max_pixel - $min_pixel;
-    my $pixel = $pixel_diff / 10;
-    
-    $pixel = $pixel * $mag;
-    $pixel = $pixel_diff + $min_pixel;
-    
-    return $pixel;
-}
-
-sub standard_model() {
-    my ($mag)=@_;
-    my $factor = $quakesettings->{'QuakePixelFactor'};
-    my $pixel = $mag / 0.1;
-    
-    $pixel = $pixel * 2;
-    $pixel = $pixel + 4;
-    $pixel = $pixel * $factor;
-    
-    return $pixel;
-}
 
 sub get_file() {
     my ($file)=@_;
@@ -570,7 +647,7 @@ sub get_file() {
     my ($name,$ext) = split '\.',$file,2;
     my $outfile= "$xplanet_images_dir/$file";
     
-    $content = get_webpage($gif_URL );
+    my $content = get_webpage($gif_URL );
     
     if ($content eq undef) {}
     else {
@@ -581,44 +658,6 @@ sub get_file() {
     }
 }
 
-sub colourisetext($) {
-    my ($mag)=@_;
-    
-    if ($quakesettings->{'QuakeDetailColor'} !~ /Multi/) {
-        return $quakesettings->{'QuakeDetailColor'};
-    }
-    else {
-        return "$quakesettings->{'QuakeDetailColorMin'}" if $mag < 4.5;
-        return "$quakesettings->{'QuakeDetailColorInt'}" if $mag < 6.5;
-        return "$quakesettings->{'QuakeDetailColorMax'}" if $mag < 8.5;
-        return 'White';
-    }
-}
-
-sub colourisemag($) {
-    my ($mag)=@_;
-    
-    if ($quakesettings->{'QuakeCircleColor'} !~ /Multi/) {
-        return $quakesettings->{'QuakeCircleColor'};
-    }
-    else {
-        return 'SeaGreen'               if $mag < 2.5;
-        return 'PaleGreen'              if $mag < 3.0;
-        return 'Green'                  if $mag < 3.5;
-        return 'ForestGreen'            if $mag < 4.0;
-        return 'Khaki'                  if $mag < 4.5; # Structal Damage
-        return 'LightGoldenrodYellow'   if $mag < 5.0;
-        return 'Yellow'                 if $mag < 5.5;
-        return 'DarkGoldenrod'          if $mag < 6.0;
-        return 'Salmon'                 if $mag < 6.5; # Major Damage
-        return 'Orange'                 if $mag < 7.0;
-        return 'Tomato'                 if $mag < 7.5;
-        return 'OrangeRed'              if $mag < 8.0;
-        return 'Red'                    if $mag < 8.5; # End of Scale
-        return 'White'                  if $mag < 10; # We are in the sh1t now :P
-        return 'Aquamarine';
-    }
-}
 
 sub make_directory() {
     my ($target)=@_;
@@ -646,21 +685,21 @@ sub make_directory() {
     return 1;
 }
 
-sub num_of_month($) {
-    my ($text_month) = @_;
-    if ($text_month =~ /Jan/)   {return 0;}
-    if ($text_month =~ /Feb/)   {return 1;}
-    if ($text_month =~ /March/) {return 2;}
-    if ($text_month =~ /April/) {return 3;}
-    if ($text_month =~ /May/)   {return 4;}
-    if ($text_month =~ /June/)  {return 5;}
-    if ($text_month =~ /July/)  {return 6;}
-    if ($text_month =~ /Aug/)   {return 7;}
-    if ($text_month =~ /Sept/)  {return 8;}
-    if ($text_month =~ /Oct/)   {return 9;}
-    if ($text_month =~ /Nov/)   {return 10;}
-    if ($text_month =~ /Dec/)   {return 11;}
-}
+#sub num_of_month($) {
+#    my ($text_month) = @_;
+#    if ($text_month =~ /Jan/)   {return 0;}
+#    if ($text_month =~ /Feb/)   {return 1;}
+#    if ($text_month =~ /March/) {return 2;}
+#    if ($text_month =~ /April/) {return 3;}
+#    if ($text_month =~ /May/)   {return 4;}
+#    if ($text_month =~ /June/)  {return 5;}
+#    if ($text_month =~ /July/)  {return 6;}
+#    if ($text_month =~ /Aug/)   {return 7;}
+#    if ($text_month =~ /Sept/)  {return 8;}
+#    if ($text_month =~ /Oct/)   {return 9;}
+#    if ($text_month =~ /Nov/)   {return 10;}
+#    if ($text_month =~ /Dec/)   {return 11;}
+#}
 
 sub boundschecking() {
     my ($value) = @_;
@@ -671,494 +710,18 @@ sub boundschecking() {
     return ($value);
 }
 
-sub WriteoutQuake($) {
-    my ($counter) = @_;
-    my $recounter = 0;
-    
-    if ($counter != FAILED) {
-        my $openfile = Earthquake;
-        
-        open (MF, ">$quake_marker_file");
-        &file_header($openfile);
-        
-        while ($recounter < $counter) {
-            $date = $quakedata[$recounter]->{'date'};
-            $time = $quakedata[$recounter]->{'time'};
-            $lat = $quakedata[$recounter]->{'lat'};
-            $lat  = sprintf("% 7.2f",$lat);
-            $long = $quakedata[$recounter]->{'long'};
-            $long = sprintf("% 7.2f",$long);
-            $dep = $quakedata[$recounter]->{'dep'};
-            $dep = sprintf("% 6.1f",$dep);
-            $mag = $quakedata[$recounter]->{'mag'};
-            $mag = sprintf("%-3s",$mag);
-            $mag = sprintf("%.1f",$mag);
-            $q = $quakedata[$recounter]->{'q'};
-            $q  = sprintf("%-2s",$q);
-            $detail = $quakedata[$recounter]->{'detail'};
-            
-            if ($detail =~ /&#060;/) {
-                substr ($detail,0,6) = "<";
-            }
-            
-            $detail = sprintf("%-17s",''.$detail.'');
-            
-            if ($mag >= $quakesettings->{'QuakeMinimumSize'}) {
-                if ($quakesettings->{'QuakeImageList'} =~ /\w/) {
-                    print MF "$lat $long \"\" image=$quakesettings->{'QuakeImageList'} color=".colourisemag($mag)."";
-                    if ($quakesettings->{'QuakeImageTransparent'} =~ /\d/) {
-                        print MF " transparent=$quakesettings->{'QuakeImageTransparent'}";
-                    }
-                    
-            		print MF "\n";
-                }
-                else {
-                    print MF "$lat $long \"\" color=".colourisemag($mag)." symbolsize=".drawcircle($mag)."\n";
-                }
-                
-            	if ($quakesettings->{'QuakeDetailList'} =~ /\w/) {
-                    my $tmp1 = $quakesettings->{'QuakeDetailList'};
-                    $tmp1 =~ s/<date>/$date/g;
-                    $tmp1 =~ s/<time>/$time/g;
-                    $tmp1 =~ s/<lat>/$lat/g;
-                    $tmp1 =~ s/<long>/$long/g;
-                    $tmp1 =~ s/<depth>/$dep/g;
-                    $tmp1 =~ s/<mag>/$mag/g;
-                    $tmp1 =~ s/<quality>/$q/g;
-                    $tmp1 =~ s/<location>/$detail/g;
-                    print MF "$lat $long \"$tmp1\" color=".colourisetext($mag)." align=$quakesettings->{'QuakeDetailAlign'}\n";
-                }
-            }
-            
-            $recounter++;
-        }
-    }
-}
-
-sub get_Correct_quake_Feed() {
-    if ($quakesettings->{'QuakeReportingDuration'} =~ /day/i) {
-        if ($quakesettings->{'QuakeReportingSize'} =~ /significant/i) {
-            $quake_location = $quake_location_CSV_24H_SIG;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /4.5/i) {
-            $quake_location = $quake_location_CSV_24H_45;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /2.5/i) {
-            $quake_location = $quake_location_CSV_24H_25;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /1.0/i) {
-            $quake_location = $quake_location_CSV_24H_10;
-        } else {
-            $quake_location = $quake_location_CSV_24H_ALL;
-        }
-    } elsif ($quakesettings->{'QuakeReportingDuration'} =~ /week/i) {
-        if ($quakesettings->{'QuakeReportingSize'} =~ /significant/i) {
-            $quake_location = $quake_location_CSV_7D_SIG;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /4.5/i) {
-            $quake_location = $quake_location_CSV_7D_45;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /2.5/i) {
-            $quake_location = $quake_location_CSV_7D_25;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /1.0/i) {
-            $quake_location = $quake_location_CSV_7D_10;
-        } else {
-            $quake_location = $quake_location_CSV_7D_ALL;
-        }
-	} elsif ($quakesettings->{'QuakeReportingDuration'} =~ /month/i) {
-        if ($quakesettings->{'QuakeReportingSize'} =~ /significant/i) {
-            $quake_location = $quake_location_CSV_30D_SIG;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /4.5/i) {
-            $quake_location = $quake_location_CSV_30D_45;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /2.5/i) {
-            $quake_location = $quake_location_CSV_30D_25;
-        } elsif ($quakesettings->{'QuakeReportingSize'} =~ /1.0/i) {
-            $quake_location = $quake_location_CSV_30D_10;
-        } else {
-            $quake_location = $quake_location_CSV_30D_ALL;
-		}
-	}
-}
-
-sub get_quakedata() {
-    my $quaketxt;
-    my $counter = 0;
-    
-    $quaketxt=get_webpage($quake_location);
-    
-    if ($quaketxt !~ /FAILED/) {
-        # print $quaketxt;
-        if ($quaketxt) {
-            foreach (split("\n",$quaketxt)) {
-                    #time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type,horizontalError,depthError,magError,magNst,status,locationSource,magSource
-                #2016-11-22T08:52:44.920Z,38.7886658,-122.7630005,0.9,0.94,md,8,107,0.01999,0.02,nc,nc72728310,2016-11-22T09:08:02.745Z,"1km NNW of The Geysers, California",earthquake,0.55,1.16,0.06,4,automatic,nc,nc
-                
-                #print "$_\n";
-                if (/(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}).\d+Z,([\d\-\.]+),([\d\-\.]+),([\d\.]+),([\d\.]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]*),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),\"([\w\W\d\.\s\,\:]+)\",([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+),([\w\d\.\-\"\:]+)/) {
-                    my ($date,$time,$lat,$long,$dep,$mag,$magType,$nst,$gap,$dmin,$rms,$net,$id,$updated,$place,$type,$horizontalError,$depthError,$magError,$magNst,$status,$location,$magSource)=($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23);
-                    #print "1=$1,2=$2,3=$3,4=$4,5=$5,6=$6,7=$7,8=$8,9=$9,10=$10,11=$11,12=$12,13=$13,14=$14,15=$15,16=$16,17=$17,18=$18,19=$19,20=$20,21=$21,22=$22,23=$23\n";
-                    #print "DATE = $date, TIME = $time, LAT = $lat, LONG = $long, DEPTH = $dep, MAGITUDE = $mag, LOCATION = $place, CAUSE = $type\n";
-                    
-                    push @quakedata, {
-                        'date'   => $date,
-                        'time'   => $time,
-                        'lat'    => $lat,
-                        'long'   => $long,
-                        'dep'    => $dep,
-                        'mag'    => $mag,
-                        'detail' => $place,
-                        'q'      => $type,
-                    };
-                    
-                    # print "$time, $date, $lat, $long, $dep, $mag, $place, $type.\n";
-                    $counter++;
-                }
-                # else {print "failed\n";}
-            }
-        }
-        
-        my $recounter = 0;
-        
-        while ($recounter < $counter) {
-            my $lat1 = $quakedata[$recounter]->{'lat'};
-            my $long1= $quakedata[$recounter]->{'long'};
-            
-            $lat1 *= 1;
-            $long1 *= 1;
-            $quakedata[$recounter]->{'lat'}  = $lat1;
-            $quakedata[$recounter]->{'long'} = $long1;
-            $quakedata[$recounter]->{'mag'} =~ s/M$//;
-            $quakedata[$recounter]->{'mag'} *= 1;
-            $quakedata[$recounter]->{'dep'} *= 1;
-            my $q1 = $quakedata[$recounter]->{'q'};
-            if ($q1 != A && $q1 != B) {$q = "U";}
-            $quakedata[$recounter]->{'q'} = $q1;
-            $recounter++;
-        }
-        
-        print "  Updated earthquake information\n";
-        
-        return $counter;
-    }
-    else {
-        print "  WARNING... unable to access or download updated earthquake information\n";
-        
-        return $quaketxt;
-    }
-}
 
 #my $storm_base_location = "http://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file";
 #my $storm_past_location = "http://www.nrlmry.navy.mil/archdat/test/kml/TC/2011/ATL/12L/trackfile.txt";
 #my $storm_future_location = "http://www.nrlmry.navy.mil/atcf_web/docs/current_storms/al122011.tcw";
 
-sub get_hurricanearcdata($) {
-    my ($counter) = @_;
-    my $recounter = 0;
-    my $forcounter = 0;
-    my $actcounter = 0;
-    my $storm_track;
-    my $temp_chop;
-    
-    # print "Counter=".$counter."\n";
-    if ($counter != FAILED) {
-        while ($recounter < $counter) {
-            # Get Past Locations
-            $storm_past = get_webpage($storm_past_location.$hurricanedata[$recounter]->{'year'}."/".$hurricanedata[$recounter]->{'loc'}."/".$hurricanedata[$recounter]->{'code'}."/trackfile.txt");
-            # print $storm_past;
-            
-            if ($storm_track !~ /FAILED/) {
-                foreach (split("\n",$storm_past)) {
-                    if (/([\d\w]+)\s(\w+)\s(\d+)\s(\d+)\s+([\d\-\.NS]+)\s+([\d\-\.EW]+)\s(\w+)\s+(\d+)\s+(\d+)/) {
-                        my($code,$name,$date,$time,$lat,$long,$location,$speed,$detail)=($1,$2,$3,$4,$5,$6,$7,$8,$9);
-                        
-                        # print "$name, $lat, $long, $date, $time, $location, $speed, $code, $ocean, $previous_name\n";
-                        if ($lat =~ /(\d+\.\d+)([NS])/) {
-                            ($lat,$sign)=($1,$2);
-                            $lat *= -1 if $sign =~ /s/i;
-                        }
-                        $lat *= 1;
-                        
-                        if ($long =~ /(\d+\.\d+)([WE])/) {
-                            ($long,$sign)=($1,$2);
-                            $long *= -1 if $sign =~ /w/i;
-                        }
-                        
-                        $long *= 1;
-                        
-                        # print "$name, $lat, $long, $date, $time, $location, $speed, $code, $ocean, $previous_name\n";
-                        # print "$recounter, $lat, $long, $name, $actcounter\n";
-                        
-                        push @hurricanearcdataact, {
-                            'num'   => $recounter,
-                            'lat'   => $lat,
-                            'long'  => $long,
-                            'name'	=> $name,
-                        };
-                        
-                        $actcounter++;
-					}
-                }
-            }
-            
-            $recounter++;
-        }
-        
-        $recounter = 0;
-        while ($recounter < $counter) {
-            # Get Future Locations
-            $temp_chop = chop($hurricanedata[$recounter]->{'code'});
-            $temp_chop = $storm_future_location.$hurricanedata[$recounter]->{'ocean'}.$hurricanedata[$recounter]->{'code'}.$hurricanedata[$recounter]->{'year'}.".tcw\n";
-            #print $temp_chop."\n";
-            $storm_track = get_webpage($temp_chop);
-            #print $storm_track;
-            
-            if ($storm_track !~ /FAILED/) {
-                foreach (split("\n",$storm_track)) {
-                    #print "#-".$_."\n";
-                    # [T][0-9]+ [0-9]+[NS] [0-9]+[EW] [0-9]+
-                    if (/(T\d{3})\s(\d{3,4}\w)\s(\d{3,4}\w)\s\d{3}/) {
-                        my($time,$lat,$long)=($1,$2,$3);
-                        #print "$time, $lat, $long,";
-                        
-                        if ($lat =~ /(\d+)([NS])/) {
-                            ($lat,$sign)=($1,$2);
-                            $lat *= -1 if $sign =~ /s/i;
-                        }
-                        $lat *= 0.1;
-                        
-                        if ($long =~ /(\d+)([WE])/) {
-                            ($long,$sign)=($1,$2);
-                            $long *= -1 if $sign =~ /w/i;
-                        }
-                        $long *= 0.1;
-                        #print "$recounter, $lat, $long\n";
-                        
-                        push @hurricanearcdatafor, {
-                            'num'   => $recounter,
-                            'lat'   => $lat,
-                            'long'  => $long,
-                        };
-                        
-                        $forcounter++;
-                    }
-                }
-            }
-        
-        $recounter++;
-        }
-        
-        print "  Updated storm arc information\n";
-    }
-    else {
-        $actcounter = FAILED;
-        $forcounter = FAILED;
-        print "  WARNING... unable to access or download updated storm arc information\n";
-    }
-    
-    return $actcounter,$forcounter;
-}
-
-sub get_hurricanedata() {
-    my $counter = 0;
-    my $hurricanetxt;
-    my $sign;
-    my $year;
-    
-    $hurricanetotallist = get_webpage($storm_base_location);
-    # print $hurricanetotallist;
-    
-    if ($hurricanetxt !~ /FAILED/) {
-        foreach (split("\n",$hurricanetotallist)) {
-            if (/([\d\w]+)\s(\w+)\s(\d+)\s(\d+)\s+([\d\-\.NS]+)\s+([\d\-\.EW]+)\s(\w+)\s+(\d+)\s+(\d+)/) {
-                my($code,$name,$date,$time,$lat,$long,$location,$speed,$detail)=($1,$2,$3,$4,$5,$6,$7,$8,$9);
-                if ($lat =~ /(\d+\.\d+)([NS])/) {
-                    ($lat,$sign)=($1,$2);
-                    $lat *= -1 if $sign =~ /s/i;
-                }
-                $lat *= 1;
-                
-                if ($long =~ /(\d+\.\d+)([WE])/) {
-                    ($long,$sign)=($1,$2);
-                    $long *= -1 if $sign =~ /w/i;
-                }
-                $long *= 1;
-                $speed =~ s/^0+//;
-                
-                if ($name =~ /INVEST/) {
-                    $type = "DEP";
-                    $name = $code;
-                }
-                else {
-                    $type = "STO";
-                }
-                
-                $year = "20".substr $date,0,2;
-                
-                if ($location =~ /ATL/) {
-                    $ocean = "al";
-                }
-                elsif ($location =~ /WPAC/) {
-                    $ocean = "wp";
-                }
-                elsif ($location =~ /EPAC/) {
-                    $ocean = "ep";
-                }
-                elsif ($location =~ /CPAC/) {
-                    $ocean = "cp";
-                }
-                
-                push @hurricanedata, {
-                    'type'  => $type,
-                    'file'  => $file,
-                    'name'  => $name,
-                    'lat'   => $lat,
-                    'long'  => $long,
-                    'speed' => $speed,
-                    'code'  => $code,
-                    'year'  => $year,
-                    'ocean' => $ocean,
-                    'loc'   => $location,
-                };
-                #print "$type, $name, $lat, $long, $date, $time, $location, $speed, $code, $year, $ocean\n";
-            }
-            
-            $counter++;
-        }
-        
-        if ($counter == 0) {
-            print "  ERROR (-1)?... Unable to parse storm information\n";
-            return -1;
-        }
-        else {
-            print "  Updated storm information\n";
-            return $counter;
-        }
-    }
-    else {
-        print "  WARNING... unable to access or download updated storm information\n";
-        return $hurricanetxt;
-    }
-}
-
-sub WriteoutHurricaneArc() {
-    my ($numhur,$numact,$numfor) = @_;
-    my $counter = 0;
-    my $recounter = 0;
-    
-    if ($numhur =~ /FAILED/) {}
-    elsif ($numact =~ /FAILED/) {}
-    elsif ($numfor =~ /FAILED/) {}
-    else {
-        my $openfile = "Hurricane Arc File";
-        
-        open (MF, ">$hurricane_arc_file");
-        &file_header($openfile);
-        print MF "#\n#Thanks to Hans Ecke <http://hans.ecke.ws/xplanet> for his idea of using GreatArcs to put in the storm tracks\n\n";
-        if ($stormsettings->{'StormTrackOnOff'} =~ /On/) {
-            while ($counter < $numact) {
-                if ($hurricanearcdataact[$counter]->{'num'} ne $hurricanearcdataact[($counter+1)]->{'num'}) {
-                    #printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackReal'}\n", $hurricanearcdataact[$counter]->{'lat'}, $hurricanearcdataact[$counter]->{'long'},$hurricanedata[$recounter]->{'lat'}, $hurricanedata[$recounter]->{'long'};
-                    $recounter++;
-                    print MF "\# $hurricanearcdataact[$counter]->{'name'}\n\n";
-                }
-                elsif ($hurricanearcdataact[$counter]->{'num'} eq $hurricanearcdataact[($counter+1)]->{'num'}) {
-                    if ( ($hurricanearcdataact[$counter]->{'lat'} -  $hurricanearcdataact[$counter+1]->{'lat'} > 10) || ($hurricanearcdataact[$counter]->{'lat'} -  $hurricanearcdataact[$counter+1]->{'lat'} < -10) || ($hurricanearcdataact[$counter]->{'long'} -  $hurricanearcdataact[$counter+1]->{'long'} > 10) || ($hurricanearcdataact[$counter]->{'long'} -  $hurricanearcdataact[$counter+1]->{'long'} < -10)) {
-                    }
-                    else {
-                        printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackReal'}\n", $hurricanearcdataact[$counter]->{'lat'}, $hurricanearcdataact[$counter]->{'long'}, $hurricanearcdataact[($counter+1)]->{'lat'}, $hurricanearcdataact[($counter+1)]->{'long'};
-                    }
-                }
-                else {
-                    print MF "\n\n";
-                }
-                
-                $counter++;
-            }
-            
-            $counter = 0;
-            $recounter = 0;
-            while ($counter < $numfor) {
-                if ($hurricanearcdatafor[$counter]->{'num'} ne $hurricanearcdatafor[($counter-1)]->{'num'}) {
-                    #printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackPrediction'}\n", $hurricanedata[$recounter]->{'lat'}, $hurricanedata[$recounter]->{'long'},$hurricanearcdatafor[$counter]->{'lat'}, $hurricanearcdatafor[$counter]->{'long'};
-                    $recounter++;
-                }
-                
-                if ($hurricanearcdatafor[$counter]->{'num'} eq $hurricanearcdatafor[($counter+1)]->{'num'}) {
-                    printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackPrediction'}\n", $hurricanearcdatafor[$counter]->{'lat'}, $hurricanearcdatafor[$counter]->{'long'}, $hurricanearcdatafor[($counter+1)]->{'lat'}, $hurricanearcdatafor[($counter+1)]->{'long'};
-                }
-                else {
-                    print MF "\n\n";
-                }
-                
-                $counter++;
-            }
-        }
-    
-    close MF;
-    }
-}
-
-sub WriteoutHurricane($) {
-    my ($counter) = @_;
-    my $recounter = 0;
-    
-    if ($counter !~ /FAILED/) {
-        my $openfile = Hurricane;
-        
-        open (MF, ">$hurricane_marker_file");
-        &file_header($openfile);
-        while ($recounter < $counter) {
-            $type = $hurricanedata[$recounter]->{'type'};
-            $lat = $hurricanedata[$recounter]->{'lat'};
-            $lat  = sprintf("% 7.2f",$lat);
-            $long = $hurricanedata[$recounter]->{'long'};
-            $long = sprintf("% 7.2f",$long);
-            $name = $hurricanedata[$recounter]->{'name'};
-            $speed = $hurricanedata[$recounter]->{'speed'};
-            #print "Speed=$speed\n";
-            $speed = sprintf("% 3.0f",$speed);
-            #print "Speed=$speed\n";
-            $file = $hurricanedata[$recounter]->{'file'};
-            $file = sprintf("%-17s",'"'.$file.'"');
-            
-            if ($stormsettings->{'StormNameOnOff'} =~ /On/) {
-                print MF "$lat $long \"$name\" align=$stormsettings->{'StormAlignName'} color=$stormsettings->{'StormColorName'}";
-                
-                if ($stormsettings->{'StormImageList'} =~ /\w/) {
-                    print MF " image=$stormsettings->{'StormImageList'}";
-                    
-                    if ($stormsettings->{'StormImageTransparent'} =~ /\w/) {
-                        print MF " transparent=$stormsettings->{'StormImageTransparent'}";
-                    }
-                }
-                print MF "\n";
-            }
-            
-            if ($stormsettings->{'StormDetailList'} =~ /\w/) {
-                my $tmp1 = $stormsettings->{'StormDetailList'};
-                
-                $tmp1 =~ s/<lat>/$lat/g;
-                $tmp1 =~ s/<long>/$long/g;
-                $tmp1 =~ s/<type>/$type/g;
-                $tmp1 =~ s/<name>/$name/g;
-                $tmp1 =~ s/<speed>/$speed/g;
-                #print "Speed=$speed\n";
-                #print "$lat $long \"$tmp1\" align=$stormsettings->{'StormAlignDetail'} color=$stormsettings->{'StormColorDetail'}\n";
-                print MF "$lat $long \"$tmp1\" align=$stormsettings->{'StormAlignDetail'} color=$stormsettings->{'StormColorDetail'}";
-            }
-            
-            if ($stormsettings->{'StormImageList'} =~ /\w/) {
-                print MF " image=$stormsettings->{'StormImageList'}";
-                if ($stormsettings->{'StormImageTransparent'} =~ /\w/) {
-                    print MF " transparent=$stormsettings->{'StormImageTransparent'}";
-                }
-            }
-            
-            print MF "\n";
-            $recounter++;
-        }
-        
-        close MF;
-    }
-}
-
 sub install_marker() {
     my ($version,$type) = @_;
+    my @inilines;
+    my @inivalue;
+    my $oldversionnumber;
+    my $newversionnumber;
+
     
     print "install_marker\nVersion = $version\nType = $type\n";
     open (MF, "<$winXPlanetBG");
@@ -1224,8 +787,8 @@ sub install_marker() {
 sub install() {
     my ($flag) =@_;
     
-    $oldversionnumber = 0.94;
-    $newversionnumber = 0.95;
+    my $oldversionnumber = 0.94;
+    my $newversionnumber = 0.95;
     if ($flag =~ /eclipsfile/) {
         my $test = &make_directory($xplanet_config_dir);
         
@@ -1294,26 +857,26 @@ sub install() {
     }
     elsif ($flag =~ /quake/) {
         my $xplanetversion = &get_program_version();
-        
+    
         if ($xplanetversion =~ /(\d.\d\d)(\w)/) {
-            my ($pversion,$prevision) = ($1,$2);
-            
+            my ($pversion, $prevision) = ($1, $2);
+        
             $pversion *= 1;
             if ($pversion < 0.93) {
-                print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
+             print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
             }
-            elsif ($pversion = 0.93) {
-                if (ord $prevision < ord d) {
+            elsif ($pversion == 0.93) {
+                if (ord($prevision) < ord('d')) {
                     print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
                 }
             }
-            elsif ($pversion < 0.95 ) {
-                &install_marker($oldversionnumber,$flag);
+            elsif ($pversion < 0.95) {
+                &install_marker($oldversionnumber, $flag);
             }
             else {
-                &install_marker($newversionnumber,$flag);
+                &install_marker($newversionnumber, $flag);
             }
-            
+        
             print "Earthquakes\nXplanet Version = $pversion, Revision = $prevision:\n";
         }
     }
@@ -1408,26 +971,28 @@ sub install() {
             &update_ini_file;
         }
         else {
-            open (MF, "<$settings_ini_file");
-            while (<MF>) {
-                foreach (split "\n") {
-                    if ($_ =~ /Config File Written by/) {
-                        my $tmp1,$tmp2,$tmp3,$tmp4,$tmp5,$tmp6,$tmp7 = split " ";
-                        
-                        $oldversion = $tmp7;
-                    }
-                }
-                
-                close MF;
-                &changelog_print ($oldversion);
+    open (MF, "<$settings_ini_file") or die "Could not open file '$settings_ini_file' $!";
+    while (<MF>) {
+        foreach (split "\n") {
+            if ($_ =~ /Config File Written by/) {
+                my ($tmp1, $tmp2, $tmp3, $tmp4, $tmp5, $tmp6, $tmp7) = split " ";
+                $oldversion = $tmp7;
             }
         }
     }
+    close(MF);
+    }
     
-    $installed = 1;
+    my $installed = 1;
 }
 
 sub update_ini_file() {
+    my $volcanosettings;
+    my $stormsettings;
+    my $labelsettings;
+    my $cloudsettings;
+    my @volcanodata;
+
     &get_settings;
     print "\nUpgrading Totalmarker.ini File to Latest Version.\n";
     open (MF, ">$settings_ini_file");
@@ -1792,7 +1357,7 @@ sub update_ini_file() {
     print MF "\n\#\n\#MISC\n\#";
     
     print MF "\nEasterEggSurprises=";
-    if (settings->{'EasterEggSurprises'} =~ /\w/)                               {print MF "settings->{'EasterEggSurprises'}";}
+    if ($settings->{'EasterEggSurprises'} =~ /\w/)                               {print MF "settings->{'EasterEggSurprises'}";}
     else {print MF "1";}
     
     print MF "\nMiscXplanetVersion1OrBetter=";
@@ -1803,1422 +1368,16 @@ sub update_ini_file() {
     print "Ini File updated to lastest version.\n";
 }
 
-sub WriteoutVolcano($) {
-    my ($counter) = @_;
-    my $recounter = 0;
-    
-    if ($counter !~ /FAILED/) {
-        my $openfile = Volcano;
-        open (MF, ">$volcano_marker_file");
-        &file_header($openfile);
-        
-        while ($recounter < $counter) {
-            my $long = $volcanodata[$recounter]->{'long'};
-            my $lat = $volcanodata[$recounter]->{'lat'};
-            my $name = $volcanodata[$recounter]->{'name'};
-            my $elev = $volcanodata[$recounter]->{'elev'};
-            
-            $lat  = sprintf("% 7.2f",$lat);
-            $long = sprintf("% 7.2f",$long);
-            print MF "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorInner'} symbolsize=$volcanosettings->{'VolcanoCircleSizeInner'}\n$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorMiddle'} symbolsize=$volcanosettings->{'VolcanoCircleSizeMiddle'}\n";
-            
-            if ($volcanosettings->{'VolcanoNameOnOff'} =~ /On/) {
-                if ($volcanosettings->{'VolcanoImageList'} =~ /\w/) {
-                    print MF "$lat $long \"$name\" align=$volcanosettings->{'VolcanoNameAlign'} color=$volcanosettings->{'VolcanoNameColor'} image=$volcanosettings->{'VolcanoImageList'} ";
-                    
-                    if ($volcanosettings->{'VolcanoImageTransparent'} =~ /\d/) {
-                        print MF "transparent=$volcanosettings->{'VolcanoImageTransparent'}";
-                    }
-                }
-                else {
-                    print MF "$lat $long \"$name\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'} align=$volcanosettings->{'VolcanoNameAlign'}";
-                }
-            }
-            else {
-                print MF "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'}";
-            }
-            print MF "\n";
-            
-            if ($volcanosettings->{'VolcanoDetailList'} =~ /\w/) {
-                my $tmp1 = $volcanosettings->{'VolcanoDetailList'};
-                
-                $tmp1 =~ s/<lat>/$lat/g;
-                $tmp1 =~ s/<long>/$long/g;
-                $tmp1 =~ s/<elevation>/$elev/g;
-                $tmp1 =~ s/<elev>/$elev/g;
-                $tmp1 =~ s/<name>/$name/g;
-                $tmp1 =~ s/<location>/$locations/g;
-                print MF "$lat $long \"$tmp1\" color=$volcanosettings->{'VolcanoDetailColor'} align=$volcanosettings->{'VolcanoDetailAlign'} image=none\n";
-            }
-            
-            $recounter++;
-        }
-        
-        close MF;
-    }
-}
 
-# elsif ($setting =~ /VolcanoDetailList/) {$volcanosettings->{'VolcanoDetailList'} = $result;}
-# elsif ($setting =~ /VolcanoDetailAlign/) {$volcanosettings->{'VolcanoDetailAlign'} = $result;}
-
-sub get_volcanodata() {
-    my $flag = 1;
-    my $MaxDownloadFrequencyHours = 24;
-    my $MaxRetries = 3;
-    my $volcanodata_file = "$volcano_marker_file";
-    #print "$cloud_image_file\n";
-    
-    # Get file details
-    if (-f $volcanodata_file) {
-        my @Stats = stat($volcanodata_file);
-        my $FileAge = (time() - $Stats[9]);
-        my $FileSize = $Stats[7];
-        
-        # Check if file is already up to date
-        if ($FileAge < 60 * 60 * $MaxDownloadFrequencyHours) {
-            print "Volcano data is up to date!\n";
-            $flag = 0;
-        }
-    }
-    
-    if ($flag != 0) {
-        $flag = volcanodata_checked();
-    }
-    else {
-        $flag = "what";
-    }
-    #print " flag = $flag";
-    
-    return $flag;
-}
-
-sub volcanodata_checked() {
-    my $volcanotxt;
-    my $counter = 0;
-    
-    $volcanotxt = get_webpage($volcano_location);
-    
-    if ($volcanotxt !~ /FAILED/) {
-        $volcanotxt =~ s/[\r\n]+//g;
-        
-        foreach(split("<info>",$volcanotxt)) {
-            chomp;
-    #print $_ ."\n";
-    #        <category>Geo</category>        <event>Volcano</event>  <responseType>None</responseType>       <urgency>Unknown</urgency>      <severity>Unknown</severity>    <certainty>Observed</certainty> <eventCode><valueName>Volcano Name</valueName><value>Yasur</value></eventCode>  <eventCode><valueName>New Activity</valueName><value>N</value></eventCode>      <eventCode><valueName>Observatory Name (primary)</valueName><value></value></eventCode> <eventCode><valueName>Observatory Link (primary)</valueName><value></value></eventCode> <eventCode><valueName>Observatory Name (secondary)</valueName><value></value></eventCode>       <eventCode><valueName>Observatory Link (secondary)</valueName><value></value></eventCode>       <senderName>Global Volcanism Program (Smithsonian Institution)</senderName>     <headline>Volcanic activity report for Yasur (Vanuatu), 22 May-28 May 2013</headline>   <description>On 28 May, the Vanuatu Geohazards Observatory reported that activity at Yasur continued to increase slightly, and bombs fell around the summit area, the tourist walk, and the parking area. Ash venting and densewhite plumes from the crater were observed. Photos included in the report showed ash emissions and ashfall on 5 and 8 May, and dense white plumes on 23 and 24 May. The Alert Level remained at 2 (on a scale of 0-4).</description>    <web>http://www.volcano.si.edu/weekly_report.cfm</web>  <contact>Source: Vanuatu Geohazards Observatory </contact>      <area><areaDesc>Vanuatu</areaDesc><circle>-19.530,169.442,0</circle></area></info></alert>
-    #        <category>Geo</category>        <event>Volcano</event>  <responseType>None</responseType>       <urgency>Unknown</urgency>      <severity>Unknown</severity>    <certainty>Observed</certainty> <eventCode><valueName>Volcano Name</valueName><value>Shiveluch</value></eventCode>      <eventCode><valueName>New Activity</valueName><value>No</value></eventCode>     <eventCode><valueName>Observatory Name (primary)</valueName><value>Kamchatka Volcanic Eruption Response Team</value></eventCode>        <eventCode><valueName>Observatory Link (primary)</valueName><value>http://www.kscnet.ru/ivs/kvert/index_eng.php</value></eventCode><eventCode><valueName>Observatory Name (secondary)</valueName><value>Institute of Volcanology and Seismology</value></eventCode>        <eventCode><valueName>Observatory Link (secondary)</valueName><value>http://www.kscnet.ru/ivs/volcanoes/holocene/index.htm</value></eventCode>  <senderName>Global Volcanism Program (Smithsonian Institution)</senderName>     <headline>Volcanic activity report for Shiveluch (Russia), 2 April-8 April 2014</headline>      <description>KVERT reported that during 28 March-4 April lava-dome extrusion at Shiveluch was accompanied by ash explosions, incandescence, hot avalanches, and fumarolic activity. A bright thermal anomaly was detected daily in satellite images. The Aviation ColorCode remained at Orange. </description> <web>http://www.volcano.si.edu/weekly_report.cfm</web>  <contact>Source: Kamchatkan Volcanic Eruption Response Team (KVERT)</contact>   <area><areaDesc>Russia</areaDesc><circle>56.653,161.360 0</circle></area></info>
-    #if ( /.*\<valueName\>Volcano Name\<\/valueName\>\<value\>([A-Z,\s]+)\<\/value\>.*\<areaDesc\>([A-Z,\-,\s]+)\<\/areaDesc\>\<circle\>([\d\-\.]+),([\d\-\.]+).[\d\-\.]+\<\/circle\>.*/i) {
-    #print "name = $1\n";
-    #print "area = $2\n";
-    #print "lat = $3\n";
-    #print "long = $4\n\n";
-    #}
-            
-            if ( /.*\<valueName\>Volcano Name\<\/valueName\>\<value\>([A-Z,\s]+)\<\/value\>.*\<areaDesc\>([A-Z,\-,\s]+)\<\/areaDesc\>\<circle\>([\d\-\.]+),([\d\-\.]+).[\d\-\.]+\<\/circle\>.*/i) {
-                my ($name,$area,$lat,$long)=($1,$2,$3,$4);
-                
-                $elev = "UNKNOWN";
-                #print "Name = $name\nLocation = $location\nDetail = $detail\nElev = $elev\n\n";
-                
-                if ($detail =~ /(\d+\.\d+)&deg;([NS])/) {
-                    my $sign;
-                    
-                    ($lat,$sign)=($1,$2);
-                    if ($sign =~ /s/i) {
-                        $lat *= -1;
-                    }
-                    else {
-                        $lat *= 1;
-                    }
-                }
-                
-                if ($detail =~ /(\d+\.\d+)&deg;([EW])/) {
-                    my $sign;
-                    
-                    ($long,$sign)=($1,$2);
-                    if ($sign =~ /w/i) {
-                        $long *= -1;
-                    }
-                    else {
-                        $long *= 1;
-                    }
-                }
-   #Degree sign     Numeric Referance&#176;  °  &deg;  MAC=161  WINTEL=176 UNICODE U+00B0  °
-                if ($detail =~ /(\d+\.\d+)\x{00B0}([NS])/) {
-                    my $sign;
-                     
-                    ($lat,$sign)=($1,$2);
-                    if ($sign =~ /s/i) {
-                        $lat *= -1;
-                    }
-                    else {
-                        $lat *= 1;
-                    }
-                }
-                
-                if ($detail =~ /(\d+\.\d+)&#176([NS])/) {
-                    my $sign;
-                    
-                    ($lat,$sign)=($1,$2);
-                    if ($sign =~ /s/i) {
-                        $lat *= -1;
-                    }
-                    else {
-                        $lat *= 1;
-                    }
-                }
-                
-                if ($detail =~ /(\d+\.\d+)\x{00B0}([EW])/) {
-                    my $sign;
-                    
-                    ($long,$sign)=($1,$2);
-                    if ($sign =~ /w/i) {
-                        $long *= -1;
-                    }
-                    else {
-                        $long *= 1;
-                    }
-                }
-                
-                if ($detail =~ /(\d+\.\d+)&#176([EW])/) {
-                    my $sign;
-                    
-                    ($long,$sign)=($1,$2);
-                    if ($sign =~ /w/i) {
-                        $long *= -1;
-                    }
-                    else {
-                        $long *= 1;
-                    }
-                }
-                
-                if ($detail =~ /summit elev\..*?([\d,]+)/) {
-                    $elev=$1;
-                    $elev =~ s/\D//;
-                    $elev *=1;
-                }
-                
-                $name =~ s/\&(.).*?\;/lc($1)/eg;
-                $name = lc($name);
-                $name =~ s/\b(\w)/uc($1)/eg;
-                
-                if ($name !~ /Additional/) {
-                    
-    ####### FIX ME IF THIS BREAKS STUFF
-    # print "lat=$lat. long=$long.\n";
-    # print "name=$name.\n";
-    # print "location=$area.\n";
-    # print "elev=$elev.\n";
-    # print "$detail.\n";
-    ################################
-
-                    push @volcanodata, {
-                        'lat'    => $lat,
-                        'long'   => $long,
-                        'name'   => $name,
-                        'elev'   => $elev,
-                        'location'   => $area,
-                    };
-                    
-                    $counter++;
-                }
-            }
-        }
-        
-        print "  Updated volcano information\n";
-        return $counter;
-    }
-    else {
-        print "  WARNING... unable to access or download updated volcano information\n";
-        return $volcanotxt;
-    }
-}
-
-sub get_noraddata() {
-    my $flag = 1;
-    my $MaxDownloadFrequencyHours = 12;
-    my $MaxRetries = 3;
-    my $tlefile = "$isstle_file";
-    #print "$cloud_image_file\n";
-    
-    # Get file details
-    if (-f $tlefile)	{
-        my @Stats = stat($tlefile);
-        my $FileAge = (time() - $Stats[9]);
-        my $FileSize = $Stats[7];
-        
-        
-        # Check if file is already up to date
-        if ($FileAge < 60 * 60 * $MaxDownloadFrequencyHours) {
-            print "TLEs are up to date!\n";
-            $flag = 3;
-        }
-    }
-    
-    if ($flag != 3) {
-        $flag = norad_checked();
-    }
-    else {
-        $flag = "what";
-    }
-    
-    return $flag;
-}
-
-sub norad_checked() {
-    if ($noradsettings->{'NoradFileName'} =~ /\w+/) {
-        $isstle_file = "$xplanet_satellites_dir/$noradsettings->{'NoradFileName'}.tle";
-        $iss_file = "$xplanet_satellites_dir/$noradsettings->{'NoradFileName'}";
-    }
-    #print "Using files:$iss_file,\n            $isstle_file\n";
-    
-    my $counter = 0;
-    my $isstxt=get_webpage($iss_location);
-    my $hsttxt=get_webpage($hst_location);
-    my $ststxt=get_webpage($sts_location);
-    my $otherlocations1txt=get_webpage($other_locations1);
-    
-    if ($isstxt eq FAILED ) {
-        return "FAILED";
-    }
-    else {
-        my $openfile = "Satelitte TLE File";
-        open(MF, ">$isstle_file");
-        #&file_header($openfile);
-        foreach(split("\n",$isstxt)) {
-            print MF "$_\n";
-        }
-        foreach(split("\n",$hsttxt)) {
-            print MF "$_\n";
-        }
-        foreach(split("\n",$otherlocations1txt)) {
-            print MF "$_\n";
-        }
-        
-        if ($ststxt !~ /</) {
-            foreach(split("\n",$ststxt)) {
-                print MF "$_\n";
-            }
-        }
-        close(MF);
-        
-        my $stsyes = 0;
-        my $soyuzyes= 0;
-        my $TLEline = 0;
-        my $openfile = "Satellite Track";
-        
-        open(MF, ">$iss_file");
-        &file_header($openfile);
-        
-        if ($ststxt !~ /</) {
-            foreach(split("\n",$ststxt)) {
-                ($v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8, $v9) = split;
-                
-                if ($TLEline eq 3) {$TLEline = 0;}
-                
-                if ($TLEline eq 0) {
-                    if ($v1 =~ /STS/) {$stsyes = 1;}
-                    elsif ($v1 =~ /HST/) {$unknown = 0;}
-                    elsif ($v1 =~ /ISS/) {$unknown = 0;}
-                    elsif ($v1 =~ /SOYUZ/) {$soyuzyes = 1;}
-                    else {$unknown = 1;}
-                }
-                #print "Unknown = $unknown stsyes = $stsyes soyuz = $soyuzyes\n";
-                
-                if ($stsyes eq 1) {
-                    if ($stsyes eq 1 && $TLEline eq 2) {
-                        my $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradStsImage'};
-                        -e $file || &update_file(STS);
-                        
-                        if ($noradsettings->{'NoradStsOnOff'} =~ /On/) {
-                            print MF "$v2 \"$noradsettings->{'NoradStsText'}\" image=$noradsettings->{'NoradStsImage'} $noradsettings->{'NoradStsDetail'}\n";
-                        }
-                        $stsyes = 0;
-                    }
-                }
-                elsif ($unknown eq 1) {
-                    if ($unknown eq 1 && $TLEline eq 2) {
-                        my $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradSatImage'};
-                        -e $file || &update_file(SAT);
-                        
-                        if ($noradsettings->{'NoradSatOnOff'} =~ /On/) {
-                            print MF "$v2 \"$noradsettings->{'NoradSatText'}\" image=$noradsettings->{'NoradSatImage'} $noradsettings->{'NoradSatDetail'}\n";
-                        }
-                        $unknown = 0;
-                    }
-                }
-                
-                $TLEline ++;
-            }
-        }
-        
-        if ($isstxt !~ /</) {
-            foreach(split("\n",$isstxt)) {
-                ($v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8, $v9) = split;
-                
-                if ($TLEline eq 3) {$TLEline = 0;}
-                if ($TLEline eq 0) {
-                    if ($v1 =~ /SOYUZ/) {$soyuzyes = 1;}
-                }
-                if ($soyuzyes eq 1) {
-                    if ($soyuzyes eq 1 && $TLEline eq 2) {
-                        my $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradSoyuzImage'};
-                        -e $file || &update_file(SOYUZ);
-                        if ($noradsettings->{'NoradSoyuzOnOff'} =~ /On/) {
-                            print MF "$v2 \"$noradsettings->{'NoradSoyuzText'}\" image=$noradsettings->{'NoradSoyuzImage'} $noradsettings->{'NoradSoyuzDetail'}\n";
-                        }
-                        
-                        $soyuzyes = 0;
-                    }
-                }
-                
-                $TLEline ++;
-            }
-        }
-        
-        my $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradIssImage'};
-        -e $file || &update_file(ISS);
-        if ($noradsettings->{'NoradIssOnOff'} =~ /On/) {
-            print MF "25544 \"$noradsettings->{'NoradIssText'}\" image=$noradsettings->{'NoradIssImage'} $noradsettings->{'NoradIssDetail'}\n";
-        }
-        
-        my $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradHstImage'};
-        -e $file || &update_file(HST);
-        if ($noradsettings->{'NoradHstOnOff'} =~ /On/) {
-            print MF "20580 \"$noradsettings->{'NoradHstText'}\" image=$noradsettings->{'NoradHstImage'} $noradsettings->{'NoradHstDetail'}\n";
-        }
-        
-        if ($noradsettings->{'NoradMiscOnOff'} =~ /On/) {
-            my ($tmp1,$tmp2,$tmp2,$tmp4,$tmp5) = split " ",$noradsettings->{'NoradTleNumbers'},5;
-            
-            if ($tmp1 =~ /\d\d\d\d\d/) {
-                print MF "$tmp1 \"\" image=$tmp1.gif $noradsettings->{'NoradMiscDetail'}\n";
-            }
-            
-            if ($tmp2 =~ /\d\d\d\d\d/) {
-                print MF "$tmp2 \"\" image=$tmp2.gif $noradsettings->{'NoradMiscDetail'}\n";
-            }
-            
-            if ($tmp3 =~ /\d\d\d\d\d/) {
-                print MF "$tmp3 \"\" image=$tmp3.gif $noradsettings->{'NoradMiscDetail'}\n";
-            }
-            
-            if ($tmp4 =~ /\d\d\d\d\d/) {
-                print MF "$tmp4 \"\" image=$tmp4.gif $noradsettings->{'NoradMiscDetail'}\n";
-            }
-            
-            if ($tmp5 =~ /\d\d\d\d\d/) {
-                print MF "$tmp5 \"\" image=$tmp5.gif $noradsettings->{'NoradMiscDetail'}\n";
-            }
-        }
-        close(MF);
-        
-        return "1";
-    }
-    
-    return "what";
-}
-
-sub update_file () {
-    my ($type) = @_;
-    
-    if ($type =~ /ISS/) {
-        $noradsettings->{'NoradIssImage'} = "iss.png";
-        $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradIssImage'};
-        -e $file || &get_file($noradsettings->{'NoradIssImage'});
-    }
-    
-    if ($type =~ /HST/) {
-        $noradsettings->{'NoradHstImage'} = "hst.png";
-        $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradHstImage'};
-        -e $file || &get_file($noradsettings->{'NoradHstImage'});
-    }
-    
-    if ($type =~ /STS/) {
-        $noradsettings->{'NoradStsImage'} = "sts.png";
-        $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradStsImage'};
-        -e $file || &get_file($noradsettings->{'NoradStsImage'});
-    }
-    
-    if ($type =~ /SAT/) {
-        $noradsettings->{'NoradSatImage'} = "sat.png";
-        $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradSatImage'};
-        -e $file || &get_file($noradsettings->{'NoradSatImage'});
-    }
-    
-    if ($type =~ /SOYUZ/) {
-        $noradsettings->{'NoradSoyuzImage'} = "soyuz.png";
-        $file = $xplanet_images_dir.'/'.$noradsettings->{'NoradSoyuzImage'};
-        -e $file || &get_file($noradsettings->{'NoradSoyuzImage'});
-    }
-}
-
-sub WriteoutLabel () {
-    my ($update_earth,$update_norad,$update_cloud,$update_hurricane,$update_volcano,$update_label) = @_;
-    
-    if ($update_earth >= 1) {$update_earth = 1;}
-    if ($update_norad >= 1) {$update_norad = 1;}
-    if ($update_cloud >= 1) {$update_cloud = 1;}
-    if ($update_hurricane >= 1) {$update_hurricane = 1;}
-    if ($update_hurricane == -1) {$update_hurricane = 1;}
-    if ($update_volcano >= 1) {$update_volcano = 1;}
-    if ($update_label >= 1) {
-        $update_earth = 0;
-        $update_norad = 0;
-        $update_cloud = 0;
-        $update_hurricane = 0;
-        $update_volcano = 0;
-    }
-    
-    my $counter = 0;
-    my $ok_color = $labelsettings->{'LabelColorOk'};
-    my $warn_color = $labelsettings->{'LabelColorWarn'};
-    my $failed_color = $labelsettings->{'LabelColorError'};
-    
-    open(MF, "<$label_file");
-    while (<MF>) {
-        ($Yco_ords[$counter], $Xco_ords[$counter], $text1[$counter], $text2[$counter], $text3[$counter], $text4[$counter], $weekday[$counter], $monthday[$counter], $monthlet[$counter], $yeartime[$counter], $colour[$counter], $image[$counter], $position[$counter]) = split (" ");
-        $counter ++;
-    }
-    close (MF);
-    
-    my @warning_lenght;
-    push @warning_lenght, {
-        'quake'             => ($labelsettings->{'LabelWarningQuake'} *1),
-        'cloud'             => ($labelsettings->{'LabelWarningCloud'} *1),
-        'norad'             => ($labelsettings->{'LabelWarningNorad'} *1),
-        'hurricane'         => ($labelsettings->{'LabelWarningStorm'} *1),
-        'volcano'           => ($labelsettings->{'LabelWarningVolcano'} *1),
-        'quakeerror'        => ($labelsettings->{'LabelWarningQuake'} *2),
-        'clouderror'        => ($labelsettings->{'LabelWarningCloud'} *2),
-        'noraderror'        => ($labelsettings->{'LabelWarningNorad'} *2),
-        'hurricaneerror'    => ($labelsettings->{'LabelWarningStorm'} *2),
-        'volcanoerror'      => ($labelsettings->{'LabelWarningVolcano'} *2),
-    };
-    
-    ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-    $thisday = (Sun,Mon,Tues,Wed,Thurs,Fri,Sat)[(localtime)[6]];
-    $thismonth = (Jan,Feb,March,April,May,June,July,Aug,Sept,Oct,Nov,Dec)[(localtime)[4]];
-    $year += 1900;
-    $time_now = time;
-    
-    open(MF, ">$label_file");
-    $openfile = UpdateLabel;
-    &file_header($openfile);
-    
-    $recounter = 0;
-    $position = 0;
-
-    while ($recounter != $counter) {
-        if ($update_earth ne 0 && $text1[$recounter] =~ /Earthquake/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] \"Earthquake Infomation Last Updated";
-            $position++;
-            substr($yeartime[$recounter],-1,1) = "";
-            
-            if ($update_earth eq FAILED && $colour[$recounter] =~ $ok_color) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-            }
-            elsif ($update_earth eq FAILED && $colour[$recounter] =~ $warn_color) {
-                my $monnum = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$monnum,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference < $warning_lenght[0]->{'quake'}) {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-                }
-                else {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-                }
-            }
-            elsif ($update_earth eq FAILED) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-            }
-            else {
-                printf MF " $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color", $hour,$min,$sec;
-            }
-            print MF " image=none position=pixel\n";
-            
-            $update_earth = 0;
-        }
-        elsif ($update_norad ne 0 && $text1[$recounter] =~ /NORAD/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] \"NORAD Infomation Last Updated";
-            $position++;
-            substr($yeartime[$recounter],-1,1) = "";
-            
-            if ($update_norad eq FAILED && $colour[$recounter] =~ $ok_color) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-            }
-            elsif ($update_norad eq FAILED && $colour[$recounter] =~ $warn_color) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference < $warning_lenght[0]->{'norad'}) {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-                }
-                else {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-                }
-            }
-            elsif ($update_norad eq FAILED) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-            }
-            else {
-                printf MF " $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color", $hour, $min, $sec;
-            }
-            print MF " image=none position=pixel\n";
-            
-            $update_norad = 0;
-        }
-        elsif ($update_cloud ne 0 && $text1[$recounter] =~ /Cloud/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] \"Cloud Map Last Updated";
-            $position++;
-            substr($yeartime[$recounter],-1,1) = "";
-            
-            if ($update_cloud eq FAILED && $colour[$recounter] =~ $ok_color) {
-                print MF "$weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-            }
-            elsif ($update_cloud eq FAILED && $colour[$recounter] =~ $warn_color) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference < $warning_lenght[0]->{'cloud'}) {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-                }
-                else {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-                }
-            }
-            elsif ($update_cloud eq FAILED) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-            }
-            else {
-                printf MF " $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color", $hour, $min, $sec;
-            }
-            print MF " image=none position=pixel\n";
-            
-            $update_cloud = 0;
-        }
-        elsif ($update_hurricane ne 0 && $text1[$recounter] =~ /Storm/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] \"Storm Infomation Last Updated";
-            $position++;
-            substr($yeartime[$recounter],-1,1) = "";
-            
-            if ($update_hurricane eq FAILED && $colour[$recounter] =~ $ok_color) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-            }
-            elsif ($update_hurricane eq FAILED && $colour[$recounter] =~ $warn_color) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                if ($time_difference < $warning_lenght[0]->{'hurricane'}) {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-                }
-                else {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-                }
-            }
-            elsif ($update_hurricane eq FAILED) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-            }
-            else {
-                printf MF " $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color", $hour, $min, $sec;
-            }
-            print MF " image=none position=pixel\n";
-            
-            $update_hurricane = 0;
-        }
-        elsif ($update_volcano ne 0 && $text1[$recounter] =~ /Volcano/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] \"Volcano Infomation Last Updated";
-            $position++;
-            substr($yeartime[$recounter],-1,1) = "";
-            
-            if ($update_volcano eq FAILED && $colour[$recounter] =~ $ok_color) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-            }
-            elsif ($update_volcano eq FAILED && $colour[$recounter] =~ $warn_color) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference < $warning_lenght[0]->{'volcano'}) {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$warn_color";
-                }
-                else {
-                    print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-                }
-            }
-            elsif ($update_volcano eq FAILED) {
-                print MF " $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter]\" color=$failed_color";
-            }
-            else {
-                printf MF " $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color", $hour, $min, $sec;
-            }
-            print MF " image=none position=pixel\n";
-            
-            $update_volcano = 0;
-        }
-        elsif ($Yco_ords[$recounter] =~ /-\d\d/ && $text3[$recounter] =~ /Last/ && $text4[$recounter] =~ /Updated/) {
-            if ($text1[$recounter] =~ /Cloud/) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference > $warning_lenght[0]->{'clouderror'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$failed_color $image[$recounter] $position[$recounter]\n";
-                }
-                elsif ($time_difference > $warning_lenght[0]->{'cloud'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$warn_color $image[$recounter] $position[$recounter]\n";
-                }
-                else {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-                }
-            }
-            elsif ($text1[$recounter] =~ /NORAD/) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference > $warning_lenght[0]->{'noraderror'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$failed_color $image[$recounter] $position[$recounter]\n";
-                }
-                elsif ($time_difference > $warning_lenght[0]->{'norad'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$warn_color $image[$recounter] $position[$recounter]\n";
-                }
-                else {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-                }
-            }
-            elsif ($text1[$recounter] =~ /Volcano/) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference > $warning_lenght[0]->{'volcanoerror'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$failed_color $image[$recounter] $position[$recounter]\n";
-                }
-                elsif ($time_difference > $warning_lenght[0]->{'volcano'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$warn_color $image[$recounter] $position[$recounter]\n";
-                }
-                else {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-                }
-            }
-            elsif ($text1[$recounter] =~ /Storm/) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference > $warning_lenght[0]->{'hurricaneerror'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$failed_color $image[$recounter] $position[$recounter]\n";
-                }
-                elsif ($time_difference > $warning_lenght[0]->{'hurricane'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$warn_color $image[$recounter] $position[$recounter]\n";
-                }
-                else {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-                }
-            }
-            elsif ($text1[$recounter] =~ /Earthquake/) {
-                my $mon = num_of_month($monthlet[$recounter]);
-                chomp $yeartime[$recounter];
-                my ($year,$min,$sec) = split(":",$yeartime[$recounter],3);
-                my ($year,$hour) = split(",",$year,2);
-                my $year = ($year - 1900);
-                my $time_state = timelocal($sec,$min,$hour,$monthday[$recounter],$mon,$year);
-                my $time_difference = $time_now-$time_state;
-                
-                if ($time_difference > $warning_lenght[0]->{'quakeerror'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$failed_color $image[$recounter] $position[$recounter]\n";
-                }
-                elsif ($time_difference > $warning_lenght[0]->{'quake'}) {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] color=$warn_color $image[$recounter] $position[$recounter]\n";
-                }
-                else {
-                    print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-                }
-            }
-            else {
-                print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-            }
-            
-            $position++;
-        }
-        elsif ($text2[$recounter] =~ /santa.png/) {}
-        elsif ($Yco_ords[$recounter] !~ /\#/) {
-            print MF "$Yco_ords[$recounter] $Xco_ords[$recounter] $text1[$recounter] $text2[$recounter] $text3[$recounter] $text4[$recounter] $weekday[$recounter] $monthday[$recounter] $monthlet[$recounter] $yeartime[$recounter] $colour[$recounter] $image[$recounter] $position[$recounter]\n";
-        }
-        
-        $recounter++;
-    }
-    
-    if ($update_earth eq 1) {
-        $labellocate = (($position*15)+53);
-        printf MF "-$labellocate -13 \"Earthquake Infomation Last Updated $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color image=none position=pixel\n", $hour, $min, $sec;
-        $position++;
-        $update_earth = 0;
-    }
-    
-    if ($update_norad eq 1) {
-        $labellocate = (($position*15)+53);
-        printf MF "-$labellocate -13 \"NORAD Infomation Last Updated $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color image=none position=pixel\n", $hour, $min, $sec;
-        $position++;
-        $update_norad = 0;
-    }
-    
-    if ($update_cloud eq 1) {
-        $labellocate = (($position*15)+53);
-        printf MF "-$labellocate -12 \"Cloud Map Last Updated $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color image=none position=pixel\n", $hour, $min, $sec;
-        $position++;
-        $update_cloud = 0;
-    }
-    
-    if ($update_hurricane eq 1) {
-        $labellocate = (($position*15)+53);
-        printf MF "-$labellocate -13 \"Storm Infomation Last Updated $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color image=none position=pixel\n", $hour, $min, $sec;
-        $position++;
-        $update_hurricane = 0;
-    }
-    
-    if ($update_volcano eq 1) {
-        $labellocate = (($position*15)+53);
-        printf MF "-$labellocate -13 \"Volcano Infomation Last Updated $thisday $mday $thismonth $year,%02d:%02d:%02d\" color=$ok_color image=none position=pixel\n", $hour, $min, $sec;
-        $position++;
-        $update_volcano = 0;
-    }
-    
-    if ($update_earth eq FAILED) {
-        $labellocate = (($position*15)+53);
-        print MF "-$labellocate -13 \"Earthquake Infomation Last Updated FAILED TO UPDATE DATA\"color=$failed_color image=none position=pixel\n";
-        $position++;
-        $update_earth = 0;
-    }
-    
-    if ($update_norad eq FAILED) {
-        $labellocate = (($position*15)+53);
-        print MF "-$labellocate -13 \"NORAD Infomation Last Updated FAILED TO UPDATE DATA\" color=$failed_color image=none position=pixel\n";
-        $position++;
-        $update_norad = 0;
-    }
-    
-    if ($update_cloud eq FAILED) {
-        $labellocate = (($position*15)+53);
-        print MF "-$labellocate -12 \"Cloud Map Last Updated FAILED TO UPDATE DATA\" color=$failed_color image=none position=pixel \n";
-        $position++;
-        $update_cloud = 0;
-    }
-    
-    if ($update_hurricane eq FAILED) {
-        $labellocate = (($position*15)+53);
-        print MF "-$labellocate -13 \"Storm Infomation Last Updated FAILED TO UPDATE DATA\" color=$failed_color image=none position=pixel\n";
-        $position++;
-        $update_hurricane = 0;
-    }
-    
-    if ($update_volcano eq FAILED) {
-        $labellocate = (($position*15)+53);
-        print MF "-$labellocate -13 \"Volcano Infomation Last Updated FAILED TO UPDATE DATA\" color=$failed_color image=none position=pixel\n";
-        $position++;
-        $update_volcano = 0;
-    }
-    
-    close (MF);
-    print "  Updated label marker\n";
-}
-
-sub get_eclipsedata() {
-    my $counter = 0;
-    my $file  = "SEpath.html";
-    my @eclipsedatatmp;
-    print "Please Wait Building Eclipse Database.  This could take an minute.\n.";
-    my $eclipsetxt  =  get_webpage($eclipse_location.$file);
-    if ($eclipsetxt =~ /FAILED/ ) {$eclipseoverride = 1;}
-    else {
-        open (MF, ">$eclipse_data_file");
-        $tsn = localtime(time);
-        print MF "#\n# Last Updated: $tsn\n#\n";
-        print MF "[DATA]\n";
-        
-        foreach (split(/<TR>/,$eclipsetxt)) {
-            s/^\s+//;
-            s/\s+$//;
-            s/\s+/ /g;
-            s/<TD>/ /g;
-            s/<\/A>//g;
-            s/<A HREF="//g;
-            s/">//g;
-            s/path//g;
-            s/map//g;
-            ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$a8,$a9,$a10) = split " ";
-            if ($a1 =~ /\d\d\d\d/) {
-                my $year = $a1;
-                my $monthtxt = $a2;
-                my $monthnum = num_of_month($monthtxt);
-                my $dayofmonth = $a3;
-                my $type = $a4;
-                $type = sprintf("%-7s",$type);
-                my $saros = $a6;
-                my $eclmag = $a7;
-                my $duration = $a8;
-                my $path = $a10;
-                substr($path, 2, 0) = path;
-                my $time_now = time;
-                $secsperday = 86400;
-                my $time_state = timelocal(59,59,23,$dayofmonth,$monthnum,$year);
-                
-                
-                if ($time_state < $time_now) {}
-                else {
-                    print ".";
-                    print MF "$dayofmonth, $monthtxt, $year, $type, $saros, $eclmag, $duration, CRUDE\n";
-                    push @eclipsedatatmp, {'path' => $path,};
-                    $counter++;
-                }
-            }
-        }
-    }
-    
-    $recounter = 0;
-    
-    print "\nBuilt Index $counter Entries, Starting to fill data sets.\n";
-    while ($recounter < $counter) {
-        $eclipsetxt  =  get_webpage($eclipse_location.$eclipsedatatmp[$recounter]->{'path'});
-        
-        if ($eclipsetxt =~ /FAILED/) {return $eclipsetxt;}
-        else {
-            print MF "[TRACK,$recounter]\n";
-            my $tmp;
-            my $tmp1;
-            my $tmp2;
-            
-            foreach (split(/\d\dm\d\d.\ds/,$eclipsetxt)) {
-                s/^\s+//;
-                s/\s+$//;
-                s/\s+/ /g;
-                ($a1,$a2,$a3,$a4,$a5,$a6,$a7,$a8,$a9,$a10,$a11,$a12,$a13,$a14) = split " ";
-                
-                if ($a1 =~ /\d\d:\d\d/) {
-                    my ($hour,$min) = split ":",$a1;
-                    my ($tmp,$tmp1) = split '\.',$a3;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $northlat = $a2.'.'.$tmp.$tmp2;
-                    my ($tmp,$tmp1) = split '\.',$a5;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $northlong = $a4.'.'.$tmp.$tmp2;
-                    my ($tmp,$tmp1) = split '\.',$a7;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $southlat = $a6.'.'.$tmp.$tmp2;
-                    my ($tmp,$tmp1) = split '\.',$a9;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $southlong = $a8.'.'.$tmp.$tmp2;
-                    my ($tmp,$tmp1) = split '\.',$a11;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $centrallat = $a10.'.'.$tmp.$tmp2;
-                    my ($tmp,$tmp1) = split '\.',$a13;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $centrallong = $a12.'.'.$tmp.$tmp2;
-                    my $sign;
-                    
-                    if($northlat =~ /(\d+\.\d+)([NS])/) {
-                        ($northlat,$sign)=($1,$2);
-                        $northlat *= -1 if $sign =~ /s/i;
-                    }
-                    $northlat *= 1;
-                    $northlat = sprintf("% 6.2f",$northlat);
-                    
-                    if($northlong =~ /(\d+\.\d+)([WE])/) {
-                        ($northlong,$sign)=($1,$2);
-                        $northlong *= -1 if $sign =~ /w/i;
-                    }
-                    $northlong *= 1;
-                    $northlong = sprintf("% 6.2f",$northlong);
-                    
-                    if($southlat =~ /(\d+\.\d+)([NS])/) {
-                        ($southlat,$sign)=($1,$2);
-                        $southlat *= -1 if $sign =~ /s/i;
-                    }
-                    $southlat *= 1;
-                    $southlat = sprintf("% 6.2f",$southlat);
-                    
-                    if($southlong =~ /(\d+\.\d+)([WE])/) {
-                        ($southlong,$sign)=($1,$2);
-                        $southlong *= -1 if $sign =~ /w/i;
-                    }
-                    $southlong *= 1;
-                    $southlong = sprintf("% 6.2f",$southlong);
-                    
-                    if($centrallat =~ /(\d+\.\d+)([NS])/) {
-                        ($centrallat,$sign)=($1,$2);
-                        $centrallat *= -1 if $sign =~ /s/i;
-                    }
-                    $centrallat *= 1;
-                    $centrallat = sprintf("% 6.2f",$centrallat);
-                    
-                    if($centrallong =~ /(\d+\.\d+)([WE])/) {
-                        ($centrallong,$sign)=($1,$2);
-                        $centrallong *= -1 if $sign =~ /w/i;
-                    }
-                    $centrallong *= 1;
-                    $centrallong = sprintf("% 6.2f",$centrallong);
-                    
-                    print ".";
-                    printf MF "%03d,%02d:%02d, $northlat, $northlong, $centrallat, $centrallong, $southlat, $southlong,\n",$recounter,$hour,$min;
-                }
-            }
-        }
-        print "\nFilled Data Set #$recounter\n";
-        
-        $recounter++;
-    }
-    
-    close MF;
-}
-
-sub readineclipseindex () {
-    open (MF, "<$eclipse_data_file");
-    my $datatype;
-    my $counter = 0;
-    
-    while (<MF>) {
-        foreach (split "\n" ) {
-            my ($data1, $data2, $data3, $data4, $data5, $data6, $data7, $data8) = split ",";
-            if ($data1 =~ /DATA/) {
-                $datatype = DATA;
-            }
-            elsif ($data1 =~ /TRACK/) {
-                $datatype = TRACK;
-            }
-            elsif ($data1 =~ /#/) {
-                $datatype = COMMENT;
-            }
-            else {}
-            
-            if ($datatype eq COMMENT) {}
-            
-            if ($datatype eq DATA) {
-                if ($data1 =~ /DATA/) {}
-                else {
-                    push @eclipsedata, {
-                        'dayofmonth'     => $data1,
-                        'monthtxt'       => $data2,
-                        'year'           => $data3,
-                        'type'           => $data4,
-                        'saros'          => $data5,
-                        'eclmag'         => $data6,
-                        'duration'       => $data7,
-                        'detail'         => $data8,
-                    };
-                    #print "$data1, $data2, $data3, $data4, $data5, $data6, $data7, $data8\n";
-                    
-                    $counter++;
-                }
-            }
-        }
-    }
-    
-    close MF;
-    return $counter;
-}
-
-sub readineclipsetrack () {
-    my($dataset) = @_;
-    open (MF, "<$eclipse_data_file");
-    my $datatype;
-    my $counter = 0;
-    
-    while (<MF>) {
-        foreach (split "\n" ) {
-            my ($data1, $data2, $data3, $data4, $data5, $data6, $data7, $data8) = split ",";
-            if ($data1 =~ /DATA/) {
-                $datatype = DATA;
-            }
-            elsif ($data1 =~ /TRACK/) {
-                $datatype = TRACK;
-            }
-            elsif ($data1 =~ /#/) {
-                $datatype = COMMENT;
-            }
-            
-            if ($datatype eq COMMENT) {};
-            if ($datatype eq DATA) {}
-            if ($datatype eq TRACK) {
-                $dataset = sprintf("%03d",$dataset);
-                #print "$data1, $dataset\n";
-                if ($data1 eq $dataset) {
-                    if ($data1 =~ /TRACK/) {}
-                    else {
-                        my ($hour, $min) = split ":",$data2;
-                        
-                        push @eclipsetrack, {
-                            'hour'           => $hour,
-                            'minute'         => $min,
-                            'nlat'           => $data3,
-                            'nlong'          => $data4,
-                            'slat'           => $data7,
-                            'slong'          => $data8,
-                            'clat'           => $data5,
-                            'clong'          => $data6,
-                        };
-                        #print "$counter: $hour:$min, $data3, $data4, $data5, $data6, $data7, $data8\n";
-                        
-                        $counter++;
-                    }
-                }
-            }
-        }
-    }
-    
-    close MF;
-    return $counter;
-}
-
-sub datacurrent () {
-    my ($counter) = @_;
-    my $notice = $settings->{'EclipseNotifyTimeHours'}*3600;
-    my $recounter = 0;
-    my $monthnum;
-    my $next_eclipse;
-    my $time_now;
-    
-    while ($recounter < $counter) {
-        $monthnum = num_of_month($eclipsedata[$recounter]->{'monthtxt'});
-        $next_eclipse = timelocal(59,59,23,$eclipsedata[$recounter]->{'dayofmonth'},$monthnum,$eclipsedata[$recounter]->{'year'});
-        $time_now = time;
-        
-        if ($time_now < $next_eclipse) {
-            $result = $next_eclipse-$time_now;
-            
-            if (($next_eclipse-$time_now) < $notice ) {
-                return $recounter;
-            }
-            else {
-                # CHANGE THIS VALUE AFTER TESTING!
-                return NONE;
-            }
-        }
-        
-        
-        $recounter++;
-    }
-}
-
-sub writeouteclipsemarker() {
-    my ($counter) = @_;
-    my $recounter = 1;
-    
-    if ($counter =~ /FAILED/) {}
-    else {
-        my $openfile = Eclipse;
-        open (MF, ">$eclipse_marker_file");
-        &file_header($openfile);
-        printf MF "$eclipsetrack[1]->{'clat'}$eclipsetrack[1]->{'clong'} \"%02d:%02d\" color=Grey align=left\n",$eclipsetrack[1]->{'hour'}, $eclipsetrack[1]->{'minute'};
-        printf MF "$eclipsetrack[($counter-1)]->{'clat'}$eclipsetrack[($counter-1)]->{'clong'} \"%02d:%02d\" color=Grey align=right\n",$eclipsetrack[($counter-1)]->{'hour'}, $eclipsetrack[($counter-1)]->{'minute'};
-
-        while ($recounter < $counter) {
-            if ($eclipsetrack[$recounter]->{'minute'} =~ /[240]0/) {
-                printf MF "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[($recounter)]->{'clong'} \"%02d:%02d\" color=Grey align=top symbolsize=4\n",$eclipsetrack[($recounter)]->{'hour'}, $eclipsetrack[($recounter)]->{'minute'};
-                $recounter++;
-            }
-            
-            $recounter++;
-        }
-    }
-    
-    close MF;
-}
-
-sub writeouteclipsearcboarder () {
-    my ($counter) = @_;
-    my $recounter = 1;
-    
-    if ($counter =~ /FAILED/) {}
-    else {
-        my $openfile = Eclipse;
-        open (MF, ">>$eclipse_arc_file");
-        print MF "\n\n# Northern Limit Track\n";
-        
-        while  ($recounter < $counter) {
-            if (($recounter+1) != $counter) {
-                print MF "$eclipsetrack[$recounter]->{'nlat'}$eclipsetrack[$recounter]->{'nlong'}$eclipsetrack[$recounter+1]->{'nlat'}$eclipsetrack[$recounter+1]->{'nlong'} color=Grey spacing=0.2\n";
-            }
-            $recounter++
-        }
-        
-        $recounter  = 1;
-        print MF "\n\n# Southern Limit Track\n";
-        while  ($recounter < $counter) {
-            if (($recounter+1) != $counter) {
-                print MF "$eclipsetrack[$recounter]->{'slat'}$eclipsetrack[$recounter]->{'slong'}$eclipsetrack[$recounter+1]->{'slat'}$eclipsetrack[$recounter+1]->{'slong'} color=Grey spacing=0.2\n";
-            }
-            $recounter++
-        }
-        close MF;
-    }
-}
-
-sub writeouteclipsearccenter () {
-    my ($counter) = @_;
-    my $recounter = 1;
-    
-    if ($counter =~ /FAILED/) {}
-    else {
-        my $openfile = Eclipse;
-        open (MF, ">$eclipse_arc_file");
-        &file_header($openfile);
-        print MF "# Central Track\n";
-        
-        while  ($recounter < $counter) {
-            if (($recounter+1) != $counter) {
-                print MF "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[$recounter]->{'clong'}$eclipsetrack[$recounter+1]->{'clat'}$eclipsetrack[$recounter+1]->{'clong'} color=Black spacing=0.2\n";
-            }
-            $recounter++;
-        }
-        close MF;
-    }
-}
-
-sub writeouteclipsefilesnone() {
-    open (MF, ">$eclipse_marker_file");
-    my $openfile = Eclipse;
-    &file_header($openfile);
-    close MF;
-    open (MF, ">$eclipse_arc_file");
-    &file_header($openfile);
-    close MF;
-}
-
-sub writeouteclipselabel() {
-    my ($record_number,$track_number,$countdown) = @_;
-    $countdown *= 1;
-    my $answer;
-    $answer = ($countdown / 3600 );
-    my ($hours,$ignore) = split('\.',$answer);
-    $countdown = ($countdown-($hours*3600));
-    $answer = ($countdown / 60 );
-    my ($minutes,$ignore) = split('\.',$answer);
-    #print "countdown = $countdown, hours = $hours, min = $min\n";
-    my $biggestlat = $eclipsetrack[1]->{'clat'};
-    my $smallestlat = $eclipsetrack[1]->{'clat'};
-    my $biggestlong = $eclipsetrack[1]->{'clong'};
-    my $smallestlong = $eclipsetrack[1]->{'clong'};
-    my $counter = 2;
-    
-    while ($counter < ($track_number+1)) {
-        if ($biggestlat < $eclipsetrack[$counter]->{'clat'}) {
-            $biggestlat = $eclipsetrack[$counter]->{'clat'};
-        }
-        if ($smallestlat > $eclipsetrack[$counter]->{'clat'}) {
-            $smallestlat = $eclipsetrack[$counter]->{'clat'};
-        }
-        if ($biggestlong < $eclipsetrack[$counter]->{'clong'}) {
-            $biggestlong = $eclipsetrack[$counter]->{'clong'};
-        }
-        if ($smallestlong > $eclipsetrack[$counter]->{'clong'}) {
-            $smallestlong = $eclipsetrack[$counter]->{'clong'};
-        }
-        $counter++;
-    }
-    
-    my $lat = ($biggestlat + $smallestlat) / 2;
-    my $long = ($biggestlong + $smallestlong) / 2;
-    
-    open(MF, ">>$eclipse_marker_file");
-    printf MF "\n\n-55 1 \"A$eclipsedata[$record_number]->{'type'} Eclipse will be occuring in $hours hours and $minutes minutes, starting at $eclipsedata[$record_number]->{'dayofmonth'} $eclipsedata[$record_number]->{'monthtxt'} $eclipsedata[$record_number]->{'year'} %02d:%02d GMT\" color=White image=none position=pixel\n",$eclipsetrack[1]->{'hour'},$eclipsetrack[1]->{'minute'};
-    print MF "-45 1 \"To view this the best loaction is Latitude $lat ,Longitude $long,\" color=White image=none position=pixel\n";
-    print MF "-35 1 \"The Eclipse Track has been put on the map, and will remain until the eclipse has passed.\" color=White image=none position=pixel\n";
-    close MF;
-}
-
-sub refinedata() {
-    my ($record_number) = @_;
-    my $counter = 0;
-    my $recounter = 0;
-    my $linecounter = 0;
-    my $datac = 0;
-    my $flag = 0;
-    my $updatefile = "http://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
-    my $updateddata = get_webpage($updatefile);
-    
-    if ($updatedata =~ /FAILED/) {}
-    else {
-        foreach (split "\n",$updateddata) {
-            my ($t1,$t2,$nlat,$nlong,$clat,$clong,$slat,$slong) = split ",";
-            
-            if ($t1 =~ /(\d\d)(\w\w\w)(\d\d\d\d)/) {
-                my ($day,$month,$year) = ($1,$2,$3);
-                my ($hour,$minute) = split ":",$t2;
-                
-                $clong = sprintf("% 6.2f",$clong);
-                $clat = sprintf("% 6.2f",$clat);
-                $slong = sprintf("% 6.2f",$slong);
-                $slat = sprintf("% 6.2f",$slat);
-                $nlong = sprintf("% 6.2f",$nlong);
-                $nlat = sprintf("% 6.2f",$nlat);
-                
-                push @eclipserefined, {
-                    'day'       => $day,
-                    'month'     => $month,
-                    'year'      => $year,
-                    'hour'      => $hour,
-                    'minute'    => $minute,
-                    'nlat'      => $nlat,
-                    'nlong'     => $nlong,
-                    'clat'      => $clat,
-                    'clong'     => $clong,
-                    'slat'      => $slat,
-                    'slong'     => $slong,
-                };
-                $counter++;
-            }
-        }
-        
-        open (MF, "<$eclipse_data_file");
-        while (<MF>) {
-            foreach (split "\n",) {
-                my ($data1,$data2,$data3,$data4,$data5,$data6,$data7,$data8) = split ",";
-                @eclipsetempfile;
-                
-                push @eclipsetempfile, {
-                    'element1'        => $data1,
-                    'element2'        => $data2,
-                    'element3'        => $data3,
-                    'element4'        => $data4,
-                    'element5'        => $data5,
-                    'element6'        => $data6,
-                    'element7'        => $data7,
-                    'element8'        => $data8,
-                };
-                $recounter++;
-            }
-        }
-        close MF;
-        
-        substr($eclipsedata[$record_number]->{'monthtxt'},0,1) = "";
-        substr($eclipsedata[$record_number]->{'year'},0,1) = "";
-        #print "$eclipserefined[0]->{'day'}:$eclipsedata[$record_number]->{'dayofmonth'} and $eclipserefined[0]->{'month'}:$eclipsedata[$record_number]->{'monthtxt'} and $eclipserefined[0]->{'year'}:$eclipsedata[$record_number]->{'year'}";
-        
-        if ($eclipserefined[0] -> {'day'} eq $eclipsedata[$record_number] -> {'dayofmonth'} && $eclipserefined[0] -> {'month'} eq $eclipsedata[$record_number] -> {'monthtxt'} && $eclipserefined[0] -> {'year'} eq $eclipsedata[$record_number] -> {'year'}) {
-            open (MF, ">$eclipse_data_file");
-            $tsn = localtime(time);
-            print MF "\#\n\# Last Updated: $tsn\n\#\n";
-            $eclipsedata[$record_number]->{'detail'} = INT;
-            
-            while ($linecounter < $recounter) {
-                if ($eclipsetempfile[$linecounter]->{'element1'} =~ /\#/) {
-                    $flag = 2;
-                }
-                
-                if ($eclipsetempfile[$linecounter]->{'element1'} =~ /\[DATA/) {
-                    $flag = 3;
-                }
-                
-                if ($eclipsetempfile[$linecounter]->{'element1'} =~ /\[TRACK/) {
-                    my ($tmp1,$tmp2) = split "]",$eclipsetempfile[$linecounter]->{'element2'};
-                    chop $tmp2;
-                    chop $tmp2;
-                    
-                    if ($tmp1 eq $record_number) {
-                        $flag = 1;
-                    }
-                    else {
-                        $flag = 5;
-                    }
-                }
-                
-                if ($flag eq 0) {
-                    print MF "$eclipsetempfile[$linecounter]->{'element1'},$eclipsetempfile[$linecounter]->{'element2'},$eclipsetempfile[$linecounter]->{'element3'},$eclipsetempfile[$linecounter]->{'element4'},$eclipsetempfile[$linecounter]->{'element5'},$eclipsetempfile[$linecounter]->{'element6'},$eclipsetempfile[$linecounter]->{'element7'},$eclipsetempfile[$linecounter]->{'element8'}\n";
-                }
-                elsif ($flag eq 1) {
-                    print MF "$eclipsetempfile[$linecounter]->{'element1'},$eclipsetempfile[$linecounter]->{'element2'}\n";
-                    
-                    while ($datac < $counter) {
-                        printf MF "%03d,$eclipserefined[$datac]->{'hour'}:$eclipserefined[$datac]->{'minute'}, $eclipserefined[$datac]->{'nlat'}, $eclipserefined[$datac]->{'nlong'}, $eclipserefined[$datac]->{'clat'}, $eclipserefined[$datac]->{'clong'}, $eclipserefined[$datac]->{'slat'}, $eclipserefined[$datac]->{'slong'}\n",$record_number;
-                        $datac++;
-                    }
-                    $flag = 2;
-                }
-                elsif ($flag eq 2) {}
-                elsif ($flag eq 4) {
-                    substr($eclipsetempfile[$linecounter]->{'element2'},0,1) = "";
-                    substr($eclipsetempfile[$linecounter]->{'element3'},0,1) = "";
-                    if ($eclipserefined[0]->{'day'} eq $eclipsetempfile[$linecounter]->{'element1'} && $eclipserefined[0]->{'month'} eq $eclipsetempfile[$linecounter]->{'element2'} && $eclipserefined[0]->{'year'} eq $eclipsetempfile[$linecounter]->{'element3'}) {
-                        print MF "$eclipsetempfile[$linecounter]->{'element1'},$eclipsetempfile[$linecounter]->{'element2'},$eclipsetempfile[$linecounter]->{'element3'},$eclipsetempfile[$linecounter]->{'element4'},$eclipsetempfile[$linecounter]->{'element5'},$eclipsetempfile[$linecounter]->{'element6'},$eclipsetempfile[$linecounter]->{'element7'}, INTER\n";
-                    }
-                    else {
-                        print MF "$eclipsetempfile[$linecounter]->{'element1'},$eclipsetempfile[$linecounter]->{'element2'},$eclipsetempfile[$linecounter]->{'element3'},$eclipsetempfile[$linecounter]->{'element4'},$eclipsetempfile[$linecounter]->{'element5'},$eclipsetempfile[$linecounter]->{'element6'},$eclipsetempfile[$linecounter]->{'element7'},$eclipsetempfile[$linecounter]->{'element8'}\n";
-                    }
-                }
-                elsif ($flag eq 3) {
-                    print MF "$eclipsetempfile[$linecounter]->{'element1'}\n";
-                    $flag = 4;
-                }
-                elsif ($flag eq 5) {
-                    print MF "$eclipsetempfile[$linecounter]->{'element1'}$eclipsetempfile[$linecounter]->{'element2'}\n";
-                    $flag = 0;
-                }
-                
-                $linecounter++;
-            }
-        }
-        close MF;
-    }
-}
 
 sub get_settings () {
+    my $volcanosettings;
+    my $stormsettings;
+    my $labelsettings;
+    my $cloudsettings;
+    my $mon;
+    my $mday;
+
     open (MF, "<$settings_ini_file");
     while (<MF>) {
         foreach (split "\n") {
@@ -3346,387 +1505,35 @@ sub get_settings () {
     close MF;
 }
 
-sub easteregg () {
-    if ($mon == 11) {
-        if ($mday == 23) {
-            open (MF, ">>$label_file");
-            my $start_lat;
-            my $start_long;
-            my $lat_diff;
-            my $long_diff;
-            my $journey;
-            my $latinc;
-            my $longinc;
-            my $santa_image_file = "$xplanet_images_dir/santa.png";
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
-            -e $santa_image_file || &get_file(santa.png);
-            
-            if ($hour > 10 ) {
-                #Route NP -> Wellington
-                if ($hour == 11) {
-                    $start_lat = 90;
-                    $start_long = 180;
-                    $lat_diff = -131;
-                    $long_diff = -6;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Wellington -> Sydney
-                elsif ($hour == 12) {
-                    $start_lat = -41;
-                    $start_long = 175;
-                    $lat_diff = 7;
-                    $long_diff = -23;
-                    $journey = 120;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                elsif ($hour == 13) {
-                    $start_lat = -41;
-                    $start_long = 175;
-                    $lat_diff = 7;
-                    $long_diff = -23;
-                    $journey = 120;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + (($min+60)*$latinc);
-                    $slongloc = $start_long + (($min+60)*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Sydney -> Tokyo
-                elsif ($hour == 14) {
-                    $start_lat = -34;
-                    $start_long = 151;
-                    $lat_diff = 70;
-                    $long_diff = -11;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Tokyo -> Hong Kong
-                elsif ($hour == 15) {
-                    $start_lat = 36;
-                    $start_long = 140;
-                    $lat_diff = -13;
-                    $long_diff = -26;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Hong Kong -> Bangkok
-                elsif ($hour == 16) {
-                    $start_lat = 22;
-                    $start_long = 114;
-                    $lat_diff = -8;
-                    $long_diff = -14;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Bangkok -> Calcutta
-                elsif ($hour == 17) {
-                    $start_lat = 14;
-                    $start_long = 101;
-                    $lat_diff = 9;
-                    $long_diff = -12;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Calcutta -> Karachi
-                elsif ($hour == 18) {
-                    $start_lat = 23;
-                    $start_long = 88;
-                    $lat_diff = 2;
-                    $long_diff = -21;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Karachi -> Victoria
-                elsif ($hour == 19) {
-                    $start_lat = 25;
-                    $start_long = 67;
-                    $lat_diff = -29;
-                    $long_diff = -12;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Victoria -> Moscow
-                elsif ($hour == 20) {
-                    $start_lat = -4;
-                    $start_long = 55;
-                    $lat_diff = 60;
-                    $long_diff = -18;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Moscow -> JoBerg
-                elsif ($hour == 21) {
-                    $start_lat = 55;
-                    $start_long = 38;
-                    $lat_diff = -82;
-                    $long_diff = -10;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route JoBerg -> Berlin
-                elsif ($hour == 22) {
-                    $start_lat = -26;
-                    $start_long = 28;
-                    $lat_diff = 79;
-                    $long_diff = -15;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Berlin -> London
-                elsif ($hour == 23) {
-                    $start_lat = 53;
-                    $start_long = 13;
-                    $lat_diff = -1;
-                    $long_diff = -13;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-            }
-        }
-        
-        if ($mday == 24) {
-            open (MF, ">>$label_file");
-            my $start_lat;
-            my $start_long;
-            my $lat_diff;
-            my $long_diff;
-            my $journey;
-            my $latinc;
-            my $longinc;
-            my $santa_image_file = "$xplanet_images_dir/santa.png";
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
-            -e $santa_image_file || &get_file(santa.png);
-            
-            if ($hour < 12 ) {
-                #Route London -> Azores
-                if ($hour == 0) {
-                    $start_lat = 52;
-                    $start_long = 0;
-                    $lat_diff = -13;
-                    $long_diff = -29;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Azores -> South Georgia
-                elsif ($hour == 1) {
-                    $start_lat = 39;
-                    $start_long = -29;
-                    $lat_diff = -93;
-                    $long_diff = -8;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route South Georgia -> Rio
-                elsif ($hour == 2) {
-                    $start_lat = -55;
-                    $start_long = -37;
-                    $lat_diff = 32;
-                    $long_diff = -6;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Rio -> Stanley
-                elsif ($hour == 3) {
-                    $start_lat = -23;
-                    $start_long = -43;
-                    $lat_diff = -29;
-                    $long_diff = -17;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Stanley -> New York
-                elsif ($hour == 4) {
-                    $start_lat = -52;
-                    $start_long = -60;
-                    $lat_diff = 92;
-                    $long_diff = -14;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route New York -> Birmingham
-                elsif ($hour == 5) {
-                    $start_lat = 40;
-                    $start_long = -74;
-                    $lat_diff = -7;
-                    $long_diff = -13;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Birmingham -> Calgary
-                elsif ($hour == 6) {
-                    $start_lat = 34;
-                    $start_long = -87;
-                    $lat_diff = 18;
-                    $long_diff = -27;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Calgary -> Los Angeles
-                elsif ($hour == 7) {
-                    $start_lat = 51;
-                    $start_long = -114;
-                    $lat_diff = -17;
-                    $long_diff = -4;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Los Angles -> Sitka
-                elsif ($hour == 8) {
-                    $start_lat = 34;
-                    $start_long = -118;
-                    $lat_diff = 23;
-                    $long_diff = 17;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Sitka -> Honolulu
-                elsif ($hour == 9) {
-                    $start_lat = 57;
-                    $start_long = -135;
-                    $lat_diff = -36;
-                    $long_diff = -23;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Hawaii -> Midway Islands
-                elsif ($hour == 10) {
-                    $start_lat = 21;
-                    $start_long = -157;
-                    $lat_diff = 7;
-                    $long_diff = -20;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-                #Route Midway Islands -> North Pole
-                elsif ($hour == 11) {
-                    $start_lat = 28;
-                    $start_long = -177;
-                    $lat_diff = 62;
-                    $long_diff = -2.5;
-                    $journey = 60;
-                    $latinc = $lat_diff / $journey;
-                    $longinc = $long_diff / $journey;
-                    $slatloc = $start_lat + ($min*$latinc);
-                    $slongloc = $start_long + ($min*$longinc);
-                    print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
-                }
-            }
-        }
-    }
-    close (MF);
-}
 
-$hurricane_on_off = 0;
-$volcano_on_off = 0;
-$quake_on_off = 0;
-$clouds_on_off = 0;
-$norad_on_off = 0;
-$update_label = 0;
+my $hurricane_on_off = 0;
+my $volcano_on_off = 0;
+my $quake_on_off = 0;
+my $clouds_on_off = 0;
+my $norad_on_off = 0;
+my $update_label = 0;
 my $hurricane_record_number = 0;
 my $volcano_record_number = 0;
 my $quake_record_number = 0;
 my $norad_record_number = 0;
 my $cloud_record_number = 0;
+my $eclipseoverride;
+my $labelsettings;
+my $label_on_off;
+my $eclipse_on_off;
+my $EasterEgg_on_off;
+my @eclipsetrack;
+my @eclipsedata;
+my @eclipserefined;
+my $installed;
+
 
 &command_line();
-@settings;
+my @settings;
 
 &get_settings;
 if ($eclipseoverride eq 1) {
-    $settings->{'EclipseOnOff'} = Off
+    $settings->{'EclipseOnOff'} = 'Off';
 }
 
 if ($labelsettings->{'LabelOnOff'} =~ /On/) {
@@ -3748,74 +1555,73 @@ if ($clouds_on_off != 2 && $clouds_on_off != 1 && $volcano_on_off != 1 && $hurri
     &get_it_right_lamer;
 }
 else {
-    if ($clouds_on_off eq 1) {
+    if ($clouds_on_off == 1) {
         $cloud_record_number = 1;
     }
-    elsif ($clouds_on_off eq 2) {
-        &cloud_update($cloud_image_url, $cloud_username, $cloud_password, $cloud_file_path, $xplanet_images_dir);
+    elsif ($clouds_on_off == 2) {
+        CloudUpdate::cloud_update($cloud_image_url, $cloud_file_name, $xplanet_images_dir);  # Call cloud_update from the CloudUpdate module;
         $cloud_record_number = 1;
     }
     
-    if ($hurricane_on_off eq 1) {
+    if ($hurricane_on_off == 1) {
         my @hurricanedata;
         my @hurricanearcdatafor;
         my @hurricanearcdataact;
         
-        $hurricane_record_number = get_hurricanedata;
+        $hurricane_record_number = get_hurricanedata();
         &WriteoutHurricane($hurricane_record_number);
         
-        my ($actcounter,$forcounter) = get_hurricanearcdata($hurricane_record_number);
-        &WriteoutHurricaneArc($hurricane_record_number,$actcounter,$forcounter);
+        my ($actcounter, $forcounter) = get_hurricanearcdata($hurricane_record_number);
+        &WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
     }
     
-    if ($quake_on_off eq 1) {
+    if ($quake_on_off == 1) {
         my @quakedata;
         
-        $quake_record_number = get_quakedata;
+        $quake_record_number = get_quakedata();
         &WriteoutQuake($quake_record_number);
     }
     
-    if ($norad_on_off eq 1) {
+    if ($norad_on_off == 1) {
         my @stsdata;
         my @hstdata;
         my @issdata;
         my @ststimetable;
         
-        $norad_record_number = get_noraddata;
+        $norad_record_number = get_noraddata();
     }
     
-    if ($volcano_on_off eq 1) {
+    if ($volcano_on_off == 1) {
         my @volcanodata;
         
-        # $volcano_record_number = volcanodata_checked;
-        $volcano_record_number = get_volcanodata;
+        $volcano_record_number = get_volcanodata();
         if ($volcano_record_number !~ /what/) {
             &WriteoutVolcano($volcano_record_number); 
         }
     }
     
-    if ($label_on_off eq 1) {
-        &WriteoutLabel($quake_record_number,$norad_record_number,$cloud_record_number,$hurricane_record_number,$volcano_record_number,0);
+    if ($label_on_off == 1) {
+        &WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 0);
     }
     
-    if ($update_label eq 1) {
-        &WriteoutLabel($quake_record_number,$norad_record_number,$cloud_record_number,$hurricane_record_number,$volcano_record_number,1);
+    if ($update_label == 1) {
+        &WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 1);
     }
     
-    if ($eclipse_on_off eq 1) {
-        @eclipsedata;
-        @eclipsetrack;
-        my $eclipse_record_number = readineclipseindex;
+    if ($eclipse_on_off == 1) {
+        my @eclipsedata;
+        my @eclipsetrack;
+        my $eclipse_record_number = readineclipseindex();
         my $active_eclipse_number = &datacurrent($eclipse_record_number);
         
         if ($active_eclipse_number !~ /NONE/ || $active_eclipse_number !~ /\d/) {
-            $active_eclipse_number = NONE;
+            $active_eclipse_number = "NONE";
         }
-        #print "Eclipse Record Number = $eclipse_record_number\nActive Eclipse Number = $eclipse_eclipse_number\n";
+        #print "Eclipse Record Number = $eclipse_record_number\nActive Eclipse Number = $active_eclipse_number\n";
         
         if ($active_eclipse_number !~ /NONE/) {
             if ($eclipsedata[$active_eclipse_number]->{'detail'} =~ /CRUDE/) {
-                @eclipserefined;
+                my @eclipserefined;
                 &refinedata($active_eclipse_number);
             }
             
@@ -3824,9 +1630,9 @@ else {
             &writeouteclipsearccenter($track_number);
             &writeouteclipsemarker($track_number);
             
-            my $next_eclipse = timegm(00,$eclipsetrack[1]->{'minute'},$eclipsetrack[1]->{'hour'},$eclipsedata[$active_eclipse_number]->{'dayofmonth'},num_of_month($eclipsedata[$active_eclipse_number]->{'monthtxt'}),$eclipsedata[$active_eclipse_number]->{'year'});
+            my $next_eclipse = timegm(0, $eclipsetrack[1]->{'minute'}, $eclipsetrack[1]->{'hour'}, $eclipsedata[$active_eclipse_number]->{'dayofmonth'}, num_of_month($eclipsedata[$active_eclipse_number]->{'monthtxt'}), $eclipsedata[$active_eclipse_number]->{'year'});
             my $time_now = time;
-            my $countdown = ($next_eclipse-$time_now);
+            my $countdown = ($next_eclipse - $time_now);
             #print "$countdown\n";
             
             if ($countdown > 0) {
@@ -3834,17 +1640,18 @@ else {
             }
             
             if ($settings->{'EclipseNotifyOnOff'} =~ /On/) {
-                &writeouteclipselabel($active_eclipse_number,$track_number,$countdown);
+                &writeouteclipselabel($active_eclipse_number, $track_number, $countdown);
             }
         }
         else {
-            &writeouteclipsefilesnone;
+            &writeouteclipsefilesnone();
         }
         
-        if ($EasterEgg_on_off !~/0/ && $label_on_off eq 1) {
-            &easteregg;
+        if ($EasterEgg_on_off !~ /0/ && $label_on_off == 1) {
+            easteregg();
         }
     }
+}
 }
 
 #print "ON OFF = $volcano_on_off Volcano Record Number = $volcano_record_number \nON OFF = $quake_on_off Quake Record Number = $quake_record_number\nON OFF = $hurricane_on_off Hurricane Record Number = $hurricane_record_number\nON OFF = $clouds_on_off Cloud Record Number = $cloud_record_number\nON OFF = $norad_on_off NORAD Record Number = $norad_record_number\nON OFF = $label_on_off Label\nON OFF = $eclipse_on_off Eclipse\n";
