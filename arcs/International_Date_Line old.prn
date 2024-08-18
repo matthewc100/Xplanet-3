@@ -1,0 +1,21 @@
+# international date line
+      180.00       9      180.00       7color=plumspacing=0.5
+      180.00       7     -169.25       6color=plumspacing=0.6
+     -169.25       6     -169.25       6color=plumspacing=0.7
+     -169.25       6      170.05       5color=plumspacing=0.8
+      170.05       5      180.00       4color=plumspacing=0.9
+      180.00       4      180.00       -color=plumspacing=0.10
+      180.00       -     -159.65       -color=plumspacing=0.11
+     -159.65       -     -159.65        color=plumspacing=0.12
+     -159.65             -161.85        color=plumspacing=0.13
+     -161.85             -161.85        color=plumspacing=0.14
+     -161.85             -155.95        color=plumspacing=0.15
+     -155.95             -150.65       -color=plumspacing=0.16
+     -150.65       -     -150.65      -1color=plumspacing=0.17
+     -150.65      -1     -156.05      -1color=plumspacing=0.18
+     -156.05      -1     -156.05       -color=plumspacing=0.19
+     -156.05       -     -178.05       -color=plumspacing=0.20
+     -178.05       -     -172.75      -1color=plumspacing=0.21
+     -172.75      -1     -172.75      -4color=plumspacing=0.22
+     -172.75      -4      180.00      -5color=plumspacing=0.23
+      180.00      -5      180.00      -9color=plumspacing=0.24

@@ -1,0 +1,7 @@
+# This Satellite Track marker file created by TotalMarker - Client Edition version 2.6.1
+# For more information read the top of the TotalMarker file or go to
+# http://www.wizabit.eclipse.co.uk/xplanet
+# Last Updated: Fri Jul 26 08:39:47 2024
+#
+25544 "ISS" image=iss_transparent.png transparent={0,0,0} trail={orbit,-5,0,5} color=yellow altcirc=0 trail={orbit,-10,0,5}
+20580 "HST" image=hst.png transparent={0,0,0}

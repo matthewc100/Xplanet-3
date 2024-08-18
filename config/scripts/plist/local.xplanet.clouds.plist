@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.xplanet.clouds</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>./config/scripts/xplanet.sh</string>
+		<string>clouds</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>./logs/xplanet-clouds.log</string>
+	<key>StandardOutPath</key>
+	<string>./logs/xplanet.log</string>
+	<key>StartInterval</key>
+	<integer>10800</integer>
+	<key>WorkingDirectory</key>
+	<string>/Users/mcoblentz/.xplanet</string>
+</dict>
+</plist>
