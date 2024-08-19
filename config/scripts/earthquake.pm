@@ -157,6 +157,13 @@ sub colourisemag {
 # Subroutine to write out quake data to a marker file
 sub WriteoutQuake {
     my ($drawcircles) = @_;
+
+    # Trim any leading/trailing spaces from the file path
+    $quake_marker_file =~ s/^\s+|\s+$//g;
+    
+ # Debugging output
+    print "Attempting to open file: $quake_marker_file\n";
+
     open(my $qmf, ">", $quake_marker_file) or die "Cannot open $quake_marker_file: $!";
 
     foreach my $quake (@quakedata) {
@@ -224,7 +231,7 @@ sub get_Correct_quake_Feed {
         }
     }
 
-    set quake_location($quakelocation);
+    Globals::set_quake_location($quakelocation);  # Explicitly call the subroutine from Globals
 }
 
 # Subroutine to get quake data from the quake feed
@@ -250,7 +257,7 @@ sub get_quakedata {
             push @quakedata, $line;
         }
 
-        set_quakedata(@quakedata);
+        Globals::set_quakedata(@quakedata);  # Explicitly call the subroutine from Globals
     } else {
         print "Failed to retrieve quake data: ", $res->status_line, "\n";
         return FAILED;
