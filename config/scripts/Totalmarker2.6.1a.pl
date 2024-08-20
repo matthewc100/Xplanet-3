@@ -157,7 +157,7 @@ use Globals qw(
 #   common name (perl or perl.exe). This can be a useful way to ensure consistency in how the script identifies itself, 
 #   especially in environments where multiple Perl interpreters are used.
 BEGIN {
-    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  get_hurricanedata  WriteoutVolcano  get_volcanodata  
+    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  Hurricane::get_hurricane_data_count  WriteoutVolcano  get_volcanodata  
     # update_file  get_eclipsedata  readineclipseindex  readineclipsetrack  datacurrent  writeouteclipsemarker  writeouteclipsearcboarder  
     #writeouteclipsearccenter  writeouteclipsefilesnone  writeouteclipselabel  refinedata  get_settings  easteregg
     $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i );
@@ -350,29 +350,30 @@ if ( (-e $readfile) && (-r $readfile) ) {
     &get_xml_update;
 }
 
+# I think this should be removed.  Test first.  
 # Example usage of Earthquake module
-Earthquake::get_Correct_quake_Feed($quakesettings);
-my $counter = Earthquake::get_quakedata($quakesettings);
-Earthquake::WriteoutQuake($counter, $quakesettings);
+# Earthquake::get_Correct_quake_Feed($quakesettings);
+# my $counter = Earthquake::get_quakedata($quakesettings);
+# Earthquake::WriteoutQuake($counter, $quakesettings);
 
 ###############################
 # Reset this section to the following section when using Hurricane.pm
 ###############################
 #my $hurricane_counter = &get_hurricane_data_count();
-my ($actcounter, $forcounter) = &get_hurricanearcdata($counter);
-&WriteoutHurricane($counter);
-&WriteoutHurricaneArc($counter, $actcounter, $forcounter);
+# my ($actcounter, $forcounter) = &get_hurricanearcdata($counter);
+# &WriteoutHurricane($counter);
+# &WriteoutHurricaneArc($counter, $actcounter, $forcounter);
 
 ###############################
 # this is the module calling section
 ###############################
-# my $hurricane_counter = Hurricane::get_hurricane_data_count();
-# my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_counter);
-# Hurricane::WriteoutHurricane($hurricane_counter);
-# Hurricane::WriteoutHurricaneArc($hurricane_counter, $actcounter, $forcounter);
+#my $hurricane_counter = Hurricane::get_hurricane_data_count();
+#my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_counter);
+#Hurricane::WriteoutHurricane($hurricane_counter);
+#Hurricane::WriteoutHurricaneArc($hurricane_counter, $actcounter, $forcounter);
 
 # Label update code
-Label::WriteoutLabel($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label);
+# Label::WriteoutLabel($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label);
 
 sub get_webpage($) {
     my ($URL)=@_;
@@ -821,230 +822,6 @@ sub get_hurricane_data_count {
     else {
         print "  WARNING... unable to access or download updated storm information\n";
         return $hurricanetxt;
-    }
-}
-
-sub get_hurricanearcdata {
-    my ($counter) = @_;
-    my $recounter = 0;
-    my $forcounter = 0;
-    my $actcounter = 0;
-    my $storm_track;
-    my $temp_chop;
-    my @hurricanedata;
-    my @hurricanearcdataact;
-    my @hurricanearcdatafor;
-    my $sign;
-    
-    if ($hurricane_counter ne 'FAILED') {
-        while ($recounter < $hurricane_counter) {
-            my $storm_past = get_webpage($storm_past_location.$hurricanedata[$recounter]->{'year'}."/".$hurricanedata[$recounter]->{'loc'}."/".$hurricanedata[$recounter]->{'code'}."/trackfile.txt");
-            
-            if ($storm_track !~ /FAILED/) {
-                foreach (split("\n",$storm_past)) {
-                    if (/([\d\w]+)\s(\w+)\s(\d+)\s(\d+)\s+([\d\-\.NS]+)\s+([\d\-\.EW]+)\s(\w+)\s+(\d+)\s+(\d+)/) {
-                        my($code,$name,$date,$time,$lat,$long,$location,$speed,$detail)=($1,$2,$3,$4,$5,$6,$7,$8,$9);
-                        
-                        if ($lat =~ /(\d+\.\d+)([NS])/) {
-                            ($lat,$sign)=($1,$2);
-                            $lat *= -1 if $sign =~ /s/i;
-                        }
-                        $lat *= 1;
-                        
-                        if ($long =~ /(\d+\.\d+)([WE])/) {
-                            ($long,$sign)=($1,$2);
-                            $long *= -1 if $sign =~ /w/i;
-                        }
-                        
-                        $long *= 1;
-                        
-                        push @hurricanearcdataact, {
-                            'num'   => $recounter,
-                            'lat'   => $lat,
-                            'long'  => $long,
-                            'name'  => $name,
-                        };
-                        
-                        $actcounter++;
-                    }
-                }
-            }
-            
-            $recounter++;
-        }
-        
-        $recounter = 0;
-        while ($recounter < $hurricane_counter) {
-            $temp_chop = chop($hurricanedata[$recounter]->{'code'});
-            $temp_chop = $storm_future_location.$hurricanedata[$recounter]->{'ocean'}.$hurricanedata[$recounter]->{'code'}.$hurricanedata[$recounter]->{'year'}.".tcw\n";
-            $storm_track = get_webpage($temp_chop);
-            
-            if ($storm_track !~ /FAILED/) {
-                foreach (split("\n",$storm_track)) {
-                    if (/(T\d{3})\s(\d{3,4}\w)\s(\d{3,4}\w)\s\d{3}/) {
-                        my($time,$lat,$long)=($1,$2,$3);
-                        
-                        if ($lat =~ /(\d+)([NS])/) {
-                            ($lat,$sign)=($1,$2);
-                            $lat *= -1 if $sign =~ /s/i;
-                        }
-                        $lat *= 0.1;
-                        
-                        if ($long =~ /(\d+)([WE])/) {
-                            ($long,$sign)=($1,$2);
-                            $long *= -1 if $sign =~ /w/i;
-                        }
-                        $long *= 0.1;
-                        
-                        push @hurricanearcdatafor, {
-                            'num'   => $recounter,
-                            'lat'   => $lat,
-                            'long'  => $long,
-                        };
-                        
-                        $forcounter++;
-                    }
-                }
-            }
-        
-        $recounter++;
-        }
-        
-        print "  Updated storm arc information\n";
-    }
-    else {
-        $actcounter = 'FAILED';
-        $forcounter = 'FAILED';
-        print "  WARNING... unable to access or download updated storm arc information\n";
-    }
-    
-    return $actcounter,$forcounter;
-}
-
-sub WriteoutHurricaneArc {
-    my ($numhur,$numact,$numfor) = @_;
-    my $counter = 0;
-    my $recounter = 0;
-    my $stormsettings;
-    my @hurricanearcdataact;
-    my @hurricanearcdatafor;
-    
-    if ($numhur =~ /FAILED/) {}
-    elsif ($numact =~ /FAILED/) {}
-    elsif ($numfor =~ /FAILED/) {}
-    else {
-        my $openfile = "Hurricane Arc File";
-        
-        open (MF, ">$hurricane_arc_file");
-        &file_header($openfile);
-        print MF "#\n#Thanks to Hans Ecke <http://hans.ecke.ws/xplanet> for his idea of using GreatArcs to put in the storm tracks\n\n";
-        if ($stormsettings->{'StormTrackOnOff'} =~ /On/) {
-            while ($counter < $numact) {
-                if ($hurricanearcdataact[$counter]->{'num'} ne $hurricanearcdataact[($counter+1)]->{'num'}) {
-                    $recounter++;
-                    print MF "\# $hurricanearcdataact[$counter]->{'name'}\n\n";
-                }
-                elsif ($hurricanearcdataact[$counter]->{'num'} eq $hurricanearcdataact[($counter+1)]->{'num'}) {
-                    if ( ($hurricanearcdataact[$counter]->{'lat'} -  $hurricanearcdataact[$counter+1]->{'lat'} > 10) || ($hurricanearcdataact[$counter]->{'lat'} -  $hurricanearcdataact[$counter+1]->{'lat'} < -10) || ($hurricanearcdataact[$counter]->{'long'} -  $hurricanearcdataact[$counter+1]->{'long'} > 10) || ($hurricanearcdataact[$counter]->{'long'} -  $hurricanearcdataact[$counter+1]->{'long'} < -10)) {
-                    }
-                    else {
-                        printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackReal'}\n", $hurricanearcdataact[$counter]->{'lat'}, $hurricanearcdataact[$counter]->{'long'}, $hurricanearcdataact[($counter+1)]->{'lat'}, $hurricanearcdataact[($counter+1)]->{'long'};
-                    }
-                }
-                else {
-                    print MF "\n\n";
-                }
-                
-                $counter++;
-            }
-            
-            $counter = 0;
-            $recounter = 0;
-            while ($counter < $numfor) {
-                if ($hurricanearcdatafor[$counter]->{'num'} ne $hurricanearcdatafor[($counter-1)]->{'num'}) {
-                    $recounter++;
-                }
-                
-                if ($hurricanearcdatafor[$counter]->{'num'} eq $hurricanearcdatafor[($counter+1)]->{'num'}) {
-                    printf MF "%.1f %.1f %.1f %.1f color=$stormsettings->{'StormColorTrackPrediction'}\n", $hurricanearcdatafor[$counter]->{'lat'}, $hurricanearcdatafor[$counter]->{'long'}, $hurricanearcdatafor[($counter+1)]->{'lat'}, $hurricanearcdatafor[($counter+1)]->{'long'};
-                }
-                else {
-                    print MF "\n\n";
-                }
-                
-                $counter++;
-            }
-        }
-    
-    close MF;
-    }
-}
-
-sub WriteoutHurricane {
-    my ($hurricane_counter) = @_;
-    my $recounter = 0;
-    my $lat;
-    my $long;
-    my @hurricanedata;
-    my $type;
-    my $name;
-    my $speed;
-    my $file;
-    my $stormsettings;
-    
-    if ($hurricane_counter !~ /FAILED/) {
-        my $openfile = 'Hurricane';
-        
-        open (MF, ">$hurricane_marker_file");
-        &file_header($openfile);
-        while ($recounter < $hurricane_counter) {
-            $type = $hurricanedata[$recounter]->{'type'};
-            $lat = $hurricanedata[$recounter]->{'lat'};
-            $lat  = sprintf("% 7.2f",$lat);
-            $long = $hurricanedata[$recounter]->{'long'};
-            $long = sprintf("% 7.2f",$long);
-            $name = $hurricanedata[$recounter]->{'name'};
-            $speed = $hurricanedata[$recounter]->{'speed'};
-            $speed = sprintf("% 3.0f",$speed);
-            $file = $hurricanedata[$recounter]->{'file'};
-            $file = sprintf("%-17s",'"'.$file.'"');
-            
-            if ($stormsettings->{'StormNameOnOff'} =~ /On/) {
-                print MF "$lat $long \"$name\" align=$stormsettings->{'StormAlignName'} color=$stormsettings->{'StormColorName'}";
-                
-                if ($stormsettings->{'StormImageList'} =~ /\w/) {
-                    print MF " image=$stormsettings->{'StormImageList'}";
-                    
-                    if ($stormsettings->{'StormImageTransparent'} =~ /\w/) {
-                        print MF " transparent=$stormsettings->{'StormImageTransparent'}";
-                    }
-                }
-                print MF "\n";
-            }
-            
-            if ($stormsettings->{'StormDetailList'} =~ /\w/) {
-                my $tmp1 = $stormsettings->{'StormDetailList'};
-                
-                $tmp1 =~ s/<lat>/$lat/g;
-                $tmp1 =~ s/<long>/$long/g;
-                $tmp1 =~ s/<type>/$type/g;
-                $tmp1 =~ s/<name>/$name/g;
-                $tmp1 =~ s/<speed>/$speed/g;
-                print MF "$lat $long \"$tmp1\" align=$stormsettings->{'StormAlignDetail'} color=$stormsettings->{'StormColorDetail'}";
-            }
-            
-            if ($stormsettings->{'StormImageList'} =~ /\w/) {
-                print MF " image=$stormsettings->{'StormImageList'}";
-                if ($stormsettings->{'StormImageTransparent'} =~ /\w/) {
-                    print MF " transparent=$stormsettings->{'StormImageTransparent'}";
-                }
-            }
-            
-            print MF "\n";
-            $recounter++;
-        }
-        
-        close MF;
     }
 }
 
@@ -1902,18 +1679,18 @@ else {
         my @hurricanearcdatafor;
         my @hurricanearcdataact;
         
-        $hurricane_record_number = get_hurricanedata();
-        &WriteoutHurricane($hurricane_record_number);
+        $hurricane_record_number = Hurricane::get_hurricane_data_count();
+        Hurricane::WriteoutHurricane($hurricane_record_number);
         
-        my ($actcounter, $forcounter) = get_hurricanearcdata($hurricane_record_number);
-        &WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
+        my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_record_number);
+        Hurricane::WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
     }
     
     if ($quake_on_off == 1) {
         my @quakedata;
         
-        $quake_record_number = get_quakedata();
-        &WriteoutQuake($quake_record_number);
+        $quake_record_number = earthquake::get_quakedata();
+        earthquake::WriteoutQuake($quake_record_number);
     }
     
     if ($norad_on_off == 1) {
