@@ -1,10 +1,2 @@
-# This UpdateLabel marker file created by TotalMarker - Client Edition version 2.6.1
-# For more information read the top of the TotalMarker file or go to
-# http://www.wizabit.eclipse.co.uk/xplanet
-# Last Updated: Fri Jul 26 18:22:16 2024
-#
--68 -13 "Storm Infomation Last Updated Sun 19 May 2024,11:41:10" color=Red image=none position=pixel
--83 -13 "Earthquake Infomation Last Updated Fri 26 July 2024,18:22:16" color=Green image=none position=pixel
--98 -12 "Cloud Map Last Updated Fri 26 July 2024,08:39:48" color=Yellow image=none position=pixel
--113 -13 "Volcano Infomation Last Updated Fri 26 July 2024,09:01:45" color=Green image=none position=pixel
--128 -13 "NORAD Infomation Last Updated Fri 26 July 2024,08:39:48" color=Green image=none position=pixel
+# This is the header for UpdateLabel
+# Additional header information...

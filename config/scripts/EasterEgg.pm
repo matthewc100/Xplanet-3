@@ -2,41 +2,38 @@ package EasterEgg;
 use strict;
 use warnings;
 use Exporter 'import';
-use Globals qw($label_file $xplanet_images_dir);  # Import required global variables from Globals.pm
+use Globals qw(
+    $label_file 
+    $xplanet_images_dir
+);  # Import required global variables from Globals.pm
 
 our @EXPORT_OK = qw(easteregg);
 
 sub easteregg () {
-    my $mon;
-    my $mday;
-    my $start_lat;
-    my $start_long;
-    my $lat_diff;
-    my $long_diff;
-    my $journey;
-    my $latinc;
-    my $longinc;
-    my $slatloc;
-    my $slongloc;
-    if ($mon == 11) {
-        if ($mday == 23) {
-            open (MF, ">>$label_file");
-            my $start_lat;
-            my $start_long;
-            my $lat_diff;
-            my $long_diff;
-            my $journey;
-            my $latinc;
-            my $longinc;
-            my $slatloc;
-            my $slongloc;
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst);
+    my ($thisday, $thismonth, $start_lat, $start_long, $lat_diff, $long_diff, $journey, $latinc, $longinc, $slatloc, $slongloc);
+    
+    ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
+    $thisday = (qw(Sun Mon Tues Wed Thurs Fri Sat))[$wday];
+    $thismonth = (qw(Jan Feb March April May June July Aug Sept Oct Nov Dec))[$mon];
 
-            my $santa_image_file = "$xplanet_images_dir/santa.png";
-            my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
-            -e $santa_image_file || &get_file('santa.png');
+    # Check if it's December (11) and 23rd day
+    if ($mon == 11 && $mday == 23) {
+        my $santa_image_file = "$xplanet_images_dir/santa.png";
+
+        # Check if the santa.png image exists
+        if (!-e $santa_image_file) {
+            die "Santa image not found at $santa_image_file!";
+        }
+
+        open (MF, ">>", $label_file) or die "Cannot open label file $label_file: $!";
+
             
-            if ($hour > 10 ) {
-                #Route NP -> Wellington
+        # Simplified logic for routing
+        if ($hour >= 11 && $hour <= 23) {
+            $start_lat = 90;
+            $start_long = 180;  # Start at North Pole
+
                 if ($hour == 11) {
                     $start_lat = 90;
                     $start_long = 180;
@@ -204,11 +201,10 @@ sub easteregg () {
                     $slongloc = $start_long + ($min*$longinc);
                     print MF "$slatloc $slongloc \"\" image=santa.png transparent={0,0,0}\n";
                 }
-            }
         }
         
         if ($mday == 24) {
-            open (MF, ">>$label_file");
+            open (MF, ">>$label_file") or die "Cannot open label file $label_file: $!";
             my $start_lat;
             my $start_long;
             my $lat_diff;
@@ -218,7 +214,9 @@ sub easteregg () {
             my $longinc;
             my $santa_image_file = "$xplanet_images_dir/santa.png";
             my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
-            -e $santa_image_file || &get_file('santa.png');
+            if (!-e $santa_image_file) {
+                die "Santa image not found at $santa_image_file!";
+            }
             
             if ($hour < 12 ) {
                 #Route London -> Azores

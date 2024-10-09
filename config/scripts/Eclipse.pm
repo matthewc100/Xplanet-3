@@ -5,7 +5,6 @@ use Exporter 'import';
 use Globals qw  (
     $eclipse_arc_file
     $eclipse_data_file
-    $eclipse_location
     $eclipse_marker_file
     @eclipsedata
     @eclipsetrack
@@ -25,23 +24,44 @@ our @EXPORT_OK = qw(
     refinedata
 );
 
-sub get_eclipsedata() {
-    my $counter = 0;
-    my $file  = "SEpath.html";
-    my @eclipsedatatmp;
-    my $eclipseoverride;
-    my $tsn;
+## ECLIPSE SITES
+my $eclipse_location = "https://sunearth.gsfc.nasa.gov/eclipse/SEpath/";
+my $refined_eclipse_data = "https://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
+
+sub get_eclipsedata {
+    # Key points of the subroutine:
+        # Webpage fetching: The subroutine fetches an HTML page (SEpath.html) from a URL, processes the table rows containing eclipse data, and stores relevant data.
+        # Data processing: For each valid row, the script cleans up the data and extracts eclipse information (e.g., date, type, Saros cycle, magnitude). Only future eclipses are processed.
+        # Coordinates handling: Latitude and longitude are processed with rounding to format geographic coordinates.
+        # Error handling: If a webpage fetch fails, the subroutine returns an error message (FAILED).
+        # Progress updates: Prints a progress indicator (.) as data is processed and outputs status updates for each processed data set.
+    my $counter = 0;                # Counter for the number of eclipse data entries.
+    my $file  = "SEpath.html";      # The file to fetch from the web for eclipse data.
+    my @eclipsedatatmp;             # Temporary array to store eclipse paths.
+    my $eclipseoverride;            # A flag for handling failed data fetching.
+    my $tsn;                        # Variable to store the timestamp of the data update.
+
+    # Notify the user that the eclipse database is being built.
     print "Please Wait Building Eclipse Database. This could take a minute.\n.";
-    my $eclipsetxt  = get_webpage($eclipse_location.$file);
-    if ($eclipsetxt =~ /FAILED/ ) {
-        $eclipseoverride = 1;
+    
+    # Get the webpage containing eclipse data.
+    my $eclipsetxt  = get_webpage($eclipse_location . $file);
+    
+    # Check if the webpage fetch failed.
+    if ($eclipsetxt =~ /FAILED/) {
+        $eclipseoverride = 1;   # Set the override flag if the webpage fetch fails.
     } else {
-        open (MF, ">$eclipse_data_file");
+        # Open the local eclipse data file to write new data, or terminate if the file can't be opened.
+        open (MF, "<$eclipse_data_file") or die "Could not open $eclipse_data_file: $!";
+        
+        # Get the current local time and print the last update timestamp to the file.
         $tsn = localtime(time);
         print MF "#\n# Last Updated: $tsn\n#\n";
-        print MF "[DATA]\n";
-        
-        foreach (split(/<TR>/,$eclipsetxt)) {
+        print MF "[DATA]\n";     # Write a section header for the data.
+
+        # Split the fetched HTML data into rows based on table row tags (<TR>).
+        foreach (split(/<TR>/, $eclipsetxt)) {
+            # Clean up the HTML by removing spaces and extraneous tags.
             s/^\s+//;
             s/\s+$//;
             s/\s+/ /g;
@@ -52,196 +72,195 @@ sub get_eclipsedata() {
             s/path//g;
             s/map//g;
             
+            # Split each row by spaces and assign data to variables.
             my ($a1, $a2, $a3, $a4, $a5, $a6, $a7, $a8, $a9, $a10) = split " ";
+            
+            # If the first field is a 4-digit year, it's a valid data row.
             if ($a1 =~ /\d\d\d\d/) {
-                my $year = $a1;
-                my $monthtxt = $a2;
-                my $monthnum = num_of_month($monthtxt);
-                my $dayofmonth = $a3;
-                my $type = $a4;
-                $type = sprintf("%-7s",$type);
-                my $saros = $a6;
-                my $eclmag = $a7;
-                my $duration = $a8;
-                my $path = $a10;
-                substr($path, 2, 0) = 'path';
-                my $time_now = time;
-                my $secsperday = 86400;
-                my $time_state = timelocal(59,59,23,$dayofmonth,$monthnum,$year);
+                my $year = $a1;             # Year of the eclipse.
+                my $monthtxt = $a2;         # Month (as text).
+                my $monthnum = num_of_month($monthtxt);  # Convert the month to a numeric value.
+                my $dayofmonth = $a3;       # Day of the month.
+                my $type = $a4;             # Type of eclipse.
+                $type = sprintf("%-7s", $type);  # Format the type with padding.
+                my $saros = $a6;            # Saros cycle number.
+                my $eclmag = $a7;           # Eclipse magnitude.
+                my $duration = $a8;         # Duration of the eclipse.
+                my $path = $a10;            # Path information.
                 
+                # Add the string "path" to the path for clarity.
+                substr($path, 2, 0) = 'path';
+                
+                my $time_now = time;        # Get the current time.
+                my $secsperday = 86400;     # Seconds in a day.
+                
+                # Convert the eclipse date to a Unix timestamp.
+                my $time_state = timelocal(59,59,23, $dayofmonth, $monthnum, $year);
+                
+                # Only process future eclipses (ignore past eclipses).
                 if ($time_state < $time_now) {
-                    # Do nothing
+                    # Do nothing for past eclipses.
                 } else {
+                    # Print a progress indicator and write the eclipse data to the file.
                     print ".";
                     print MF "$dayofmonth, $monthtxt, $year, $type, $saros, $eclmag, $duration, CRUDE\n";
-                    push @eclipsedatatmp, {'path' => $path};
-                    $counter++;
+                    
+                    # Store the eclipse path in the temporary array for further data fetching.
+                    push @eclipsedatatmp, { 'path' => $path };
+                    $counter++;  # Increment the counter for each valid eclipse entry.
                 }
             }
         }
     }
-    
-    my $recounter = 0;
+
+    my $recounter = 0;   # Counter for processing individual eclipse paths.
     
     print "\nBuilt Index $counter Entries, Starting to fill data sets.\n";
+
+    # Loop through each path collected during the first data fetch.
     while ($recounter < $counter) {
-        $eclipsetxt  =  get_webpage($eclipse_location.$eclipsedatatmp[$recounter]->{'path'});
+        # Fetch the individual eclipse data page for each path.
+        $eclipsetxt = get_webpage($eclipse_location . $eclipsedatatmp[$recounter]->{'path'});
         
+        # If the fetch fails, return the failure message.
         if ($eclipsetxt =~ /FAILED/) {
             return $eclipsetxt;
         } else {
+            # Print a section header for track data in the file.
             print MF "[TRACK,$recounter]\n";
             
-            foreach (split(/\d\dm\d\d.\ds/,$eclipsetxt)) {
+            # Split the track data using a specific time format pattern.
+            foreach (split(/\d\dm\d\d.\ds/, $eclipsetxt)) {
+                # Clean up spaces in the data.
                 s/^\s+//;
                 s/\s+$//;
                 s/\s+/ /g;
                 
+                # Split the cleaned data into individual values.
                 my ($a1, $a2, $a3, $a4, $a5, $a6, $a7, $a8, $a9, $a10, $a11, $a12, $a13, $a14) = split " ";
                 
+                # Process valid lines that contain a time in the format "HH:MM".
                 if ($a1 =~ /\d\d:\d\d/) {
-                    my ($hour,$min) = split ":",$a1;
-                    my ($tmp,$tmp1) = split '\.',$a3;
-                    my $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
+                    my ($hour, $min) = split ":", $a1;  # Split the time into hour and minute.
                     
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $northlat = $a2.'.'.$tmp.$tmp2;
-                    ($tmp,$tmp1) = split '\.',$a5;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
+                    # Processing coordinates (north latitude/longitude, south latitude/longitude, central coordinates).
+                    my $northlat = format_coordinates($a2, $a3);
+                    my $northlong = format_coordinates($a4, $a5);
+                    my $southlat = format_coordinates($a6, $a7);
+                    my $southlong = format_coordinates($a8, $a9);
+                    my $centrallat = format_coordinates($a10, $a11);
+                    my $centrallong = format_coordinates($a12, $a13);
                     
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $northlong = $a4.'.'.$tmp.$tmp2;
-                    ($tmp,$tmp1) = split '\.',$a7;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $southlat = $a6.'.'.$tmp.$tmp2;
-                    ($tmp,$tmp1) = split '\.',$a9;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $southlong = $a8.'.'.$tmp.$tmp2;
-                    ($tmp,$tmp1) = split '\.',$a11;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $centrallat = $a10.'.'.$tmp.$tmp2;
-                    ($tmp,$tmp1) = split '\.',$a13;
-                    $tmp2 = substr($tmp1,-1,1);
-                    chop $tmp1;
-                    
-                    if ($tmp1 >= 5) {$tmp++;}
-                    my $centrallong = $a12.'.'.$tmp.$tmp2;
-                    my $sign;
-                    
-                    if($northlat =~ /(\d+\.\d+)([NS])/) {
-                        ($northlat,$sign)=($1,$2);
-                        $northlat *= -1 if $sign =~ /s/i;
-                    }
-                    $northlat *= 1;
-                    $northlat = sprintf("% 6.2f",$northlat);
-                    
-                    if($northlong =~ /(\d+\.\d+)([WE])/) {
-                        ($northlong,$sign)=($1,$2);
-                        $northlong *= -1 if $sign =~ /w/i;
-                    }
-                    $northlong *= 1;
-                    $northlong = sprintf("% 6.2f",$northlong);
-                    
-                    if($southlat =~ /(\d+\.\d+)([NS])/) {
-                        ($southlat,$sign)=($1,$2);
-                        $southlat *= -1 if $sign =~ /s/i;
-                    }
-                    $southlat *= 1;
-                    $southlat = sprintf("% 6.2f",$southlat);
-                    
-                    if($southlong =~ /(\d+\.\d+)([WE])/) {
-                        ($southlong,$sign)=($1,$2);
-                        $southlong *= -1 if $sign =~ /w/i;
-                    }
-                    $southlong *= 1;
-                    $southlong = sprintf("% 6.2f",$southlong);
-                    
-                    if($centrallat =~ /(\d+\.\d+)([NS])/) {
-                        ($centrallat,$sign)=($1,$2);
-                        $centrallat *= -1 if $sign =~ /s/i;
-                    }
-                    $centrallat *= 1;
-                    $centrallat = sprintf("% 6.2f",$centrallat);
-                    
-                    if($centrallong =~ /(\d+\.\d+)([WE])/) {
-                        ($centrallong,$sign)=($1,$2);
-                        $centrallong *= -1 if $sign =~ /w/i;
-                    }
-                    $centrallong *= 1;
-                    $centrallong = sprintf("% 6.2f",$centrallong);
-                    
+                    # Print a progress indicator and write the formatted data to the file.
                     print ".";
-                    printf MF "%03d,%02d:%02d, $northlat, $northlong, $centrallat, $centrallong, $southlat, $southlong,\n",$recounter,$hour,$min;
+                    printf MF "%03d,%02d:%02d, $northlat, $northlong, $centrallat, $centrallong, $southlat, $southlong,\n", $recounter, $hour, $min;
                 }
             }
         }
+
+        # Print a message indicating the data set has been processed.
         print "\nFilled Data Set #$recounter\n";
         
+        # Move to the next path.
         $recounter++;
     }
     
+    # Close the file once all data has been processed.
     close MF;
 }
 
-sub readineclipseindex () {
-    open (MF, "<$eclipse_data_file");
-    my $datatype;
-    my $counter = 0;
-    my @eclipsedata;
+# Helper subroutine to process coordinates (for latitude and longitude).
+sub format_coordinates {
+    my ($value, $remainder) = @_;
+    my ($tmp, $tmp1) = split '\.', $remainder;
+    my $tmp2 = substr($tmp1, -1, 1);  # Extract the last digit.
+    chop $tmp1;  # Remove the last character from tmp1.
     
+    # Round up the value if needed.
+    if ($tmp1 >= 5) { $tmp++; }
+    
+    return $value . '.' . $tmp . $tmp2;  # Return the formatted coordinate.
+}
+
+
+sub readineclipseindex {
+    # File opening: It opens a file, and if it fails, it terminates with an error.
+    # Data processing: It reads the file line by line, splitting each line into individual fields using commas as separators.
+    # Data type detection: It checks if the first field on the line marks the line as DATA, TRACK, or a COMMENT. Only lines marked as DATA are processed and stored.
+    # Storing parsed data: For lines identified as DATA, it extracts and stores information (e.g., date, eclipse type, etc.) into a hash, which is then pushed into an array.
+    # Counter: It keeps a count of the number of DATA entries processed and returns that count at the end.
+
+    # Open the file for reading. The file path is stored in $eclipse_data_file.
+    # If the file cannot be opened, the script will terminate with an error message.
+    open (MF, "<$eclipse_data_file") or die "Could not open $eclipse_data_file: $!";
+
+    # Initialize variables.
+    my $datatype;         # Will store the type of line being processed (DATA, TRACK, or COMMENT).
+    my $counter = 0;      # A counter to track the number of DATA entries processed.
+    my @eclipsedata;      # An array to store the parsed data as hashes.
+
+    # Read the file line by line.
     while (<MF>) {
+
+        # Split each line on newline characters.
         foreach (split "\n" ) {
+
+            # Split each line by commas to get individual data fields.
             my ($data1, $data2, $data3, $data4, $data5, $data6, $data7, $data8) = split ",";
+
+            # Determine the type of data based on the first field.
             if ($data1 =~ /DATA/) {
-                $datatype = 'DATA';
+                $datatype = 'DATA';       # Line contains data.
             }
             elsif ($data1 =~ /TRACK/) {
-                $datatype = 'TRACK';
+                $datatype = 'TRACK';      # Line contains track information.
             }
             elsif ($data1 =~ /#/) {
-                $datatype = 'COMMENT';
+                $datatype = 'COMMENT';    # Line is a comment (starts with #).
             }
-            else {}
-            
-            if ($datatype eq 'COMMENT') {}
-            
+            else {
+                # If the first field doesn't match any known type, do nothing.
+            }
+
+            # If the line is a comment, skip further processing for this iteration.
+            if ($datatype eq 'COMMENT') {
+                next;
+            }
+
+            # Process data lines.
             if ($datatype eq 'DATA') {
-                if ($data1 =~ /DATA/) {}
-                else {
+                # Ignore the header line that contains the word "DATA".
+                if ($data1 =~ /DATA/) {
+                    next;
+                } else {
+                    # For a valid data line, store the fields in a hash and push it to the array.
                     push @eclipsedata, {
-                        'dayofmonth'     => $data1,
-                        'monthtxt'       => $data2,
-                        'year'           => $data3,
-                        'type'           => $data4,
-                        'saros'          => $data5,
-                        'eclmag'         => $data6,
-                        'duration'       => $data7,
-                        'detail'         => $data8,
+                        'dayofmonth'     => $data1,  # Day of the month.
+                        'monthtxt'       => $data2,  # Month (text form).
+                        'year'           => $data3,  # Year of the eclipse.
+                        'type'           => $data4,  # Type of eclipse.
+                        'saros'          => $data5,  # Saros cycle number.
+                        'eclmag'         => $data6,  # Eclipse magnitude.
+                        'duration'       => $data7,  # Duration of the eclipse.
+                        'detail'         => $data8,  # Any additional details.
                     };
-                    #print "$data1, $data2, $data3, $data4, $data5, $data6, $data7, $data8\n";
-                    
+
+                    # Increase the counter for each processed data entry.
                     $counter++;
                 }
             }
         }
     }
-    
+
+    # Close the file after reading.
     close MF;
+
+    # Return the number of processed data entries.
     return $counter;
 }
 
-sub readineclipsetrack () {
+
+sub readineclipsetrack {
     my($dataset) = @_;
     open (MF, "<$eclipse_data_file");
     my $datatype;
@@ -294,65 +313,131 @@ sub readineclipsetrack () {
     return $counter;
 }
 
-sub datacurrent () {
-    my ($counter) = @_;
-    my $notice = $settings->{'EclipseNotifyTimeHours'}*3600;
-    my $recounter = 0;
-    my $monthnum;
-    my $next_eclipse;
-    my $time_now;
-    my @eclipsedata;
-    my $result;
+sub datacurrent {
+    # Key points of the subroutine:
+        # Arguments and setup:
+            # The subroutine takes one argument, $counter, which represents the number of eclipse data entries to process.
+            # The $notice variable is calculated from a settings hash ($settings->{'EclipseNotifyTimeHours'}) and converted from hours to seconds (multiplying by 3600).
+        # Main loop:
+            # The subroutine loops through each eclipse entry in @eclipsedata using a $recounter until it reaches $counter.
+            # Each eclipse entry's date is converted to a Unix timestamp using timelocal(), which creates a timestamp for 11:59:59 PM on the given day, month, and year.
+        # Time comparison:
+            # The current time is retrieved using the time() function.
+            # If the current time is before the next eclipse, the subroutine calculates the time difference between now and the eclipse.
+            # If the time difference is smaller than the notification period ($notice), the index ($recounter) of that eclipse is returned, signaling that the 
+            #   eclipse is close enough to trigger a notification.
+            # If the eclipse is farther away than the notification period, the subroutine returns 'NONE' (currently intended to be modified for testing purposes).
+        # Return:
+            # The function returns either the index of the upcoming eclipse ($recounter) if it's close enough for notification, or 'NONE' if the eclipse is too far in the future.
     
+    # Accepts one argument: the number of eclipse data entries to process (stored in $counter).
+    my ($counter) = @_;
+
+    # 'Notice' is the number of seconds before the next eclipse for which a notification should be triggered.
+    # It is calculated from the 'EclipseNotifyTimeHours' setting in $settings.
+    my $notice = $settings->{'EclipseNotifyTimeHours'} * 3600;
+
+    # Initialize variables.
+    my $recounter = 0;     # A counter to iterate over the eclipse data entries.
+    my $monthnum;          # Will hold the numeric value of the month.
+    my $next_eclipse;      # Will store the Unix timestamp for the next eclipse.
+    my $time_now;          # Stores the current time as a Unix timestamp.
+    my @eclipsedata;       # Array to hold eclipse data (assumed to be initialized elsewhere).
+    my $result;            # Stores the result (time difference between now and the next eclipse).
+
+    # Loop through the eclipse data until the recounter reaches the number of entries.
     while ($recounter < $counter) {
+
+        # Convert the month text into its corresponding numeric value (January = 0, December = 11).
         $monthnum = num_of_month($eclipsedata[$recounter]->{'monthtxt'});
-        $next_eclipse = timelocal(59,59,23,$eclipsedata[$recounter]->{'dayofmonth'},$monthnum,$eclipsedata[$recounter]->{'year'});
+
+        # Convert the eclipse date to a Unix timestamp using the timelocal function.
+        # Assumes the eclipse occurs at 11:59:59 PM (23:59:59) on the given day, month, and year.
+        $next_eclipse = timelocal(59,59,23,$eclipsedata[$recounter]->{'dayofmonth'}, $monthnum, $eclipsedata[$recounter]->{'year'});
+
+        # Get the current time as a Unix timestamp.
         $time_now = time;
-        
+
+        # If the current time is earlier than the next eclipse time (i.e., the eclipse is in the future):
         if ($time_now < $next_eclipse) {
-            $result = $next_eclipse-$time_now;
-            
-            if (($next_eclipse-$time_now) < $notice ) {
+
+            # Calculate the time difference between now and the next eclipse.
+            $result = $next_eclipse - $time_now;
+
+            # If the time difference is less than the notification period (i.e., close to the eclipse):
+            if (($next_eclipse - $time_now) < $notice) {
+
+                # Return the index of the next eclipse (recounter).
                 return $recounter;
-            }
-            else {
-                # CHANGE THIS VALUE AFTER TESTING!
+            } else {
+                # If the eclipse is farther away than the notification period, return 'NONE'.
+                # Note: This could be modified after testing, as indicated in the comment.
                 return 'NONE';
             }
         }
-        
-        
+
+        # Increment the recounter to move to the next eclipse entry.
         $recounter++;
     }
 }
 
-sub writeouteclipsemarker() {
-    my ($counter) = @_;
-    my $recounter = 1;
-    my @eclipsetrack;
-    
-    if ($counter =~ /FAILED/) {}
-    else {
-        my $openfile = 'Eclipse';
-        open (MF, ">$eclipse_marker_file");
-        &file_header($openfile);
-        printf MF "$eclipsetrack[1]->{'clat'}$eclipsetrack[1]->{'clong'} \"%02d:%02d\" color=Grey align=left\n",$eclipsetrack[1]->{'hour'}, $eclipsetrack[1]->{'minute'};
-        printf MF "$eclipsetrack[($counter-1)]->{'clat'}$eclipsetrack[($counter-1)]->{'clong'} \"%02d:%02d\" color=Grey align=right\n",$eclipsetrack[($counter-1)]->{'hour'}, $eclipsetrack[($counter-1)]->{'minute'};
 
+sub writeouteclipsemarker {
+    # 26 September 2024
+    # Key Modifications:
+        # Pass Filehandle to Label::file_header:  
+            # We now pass the filehandle MARKER_FH to Label::file_header by modifying the call:
+        # Error Handling for File Operations:
+            # Added error handling (or die) when opening the file and a warning (or warn) when closing the file to make it more robust.
+        # Consistent Filehandle Usage:
+            # The filehandle MARKER_FH is used consistently in all print and printf statements instead of MF, ensuring that the right filehandle is referenced.
+
+    my ($counter) = @_;     # $counter holds the number of eclipse data points.
+    my $recounter = 1;      # Initialize recounter to start processing eclipse data from the second entry.
+    my @eclipsetrack;       # Array to hold eclipse tracking data (assumed populated elsewhere).
+    
+    # Check if $counter indicates a failed condition (e.g., "FAILED").
+    if ($counter =~ /FAILED/) {
+        # Do nothing if $counter is "FAILED".
+    } else {
+        # Define the name of the open file (for header purposes).
+        my $openfile = 'Eclipse';
+        
+        # Open the eclipse marker file for writing.
+        # Add error handling in case the file cannot be opened.
+        open (MARKER_FH, ">$eclipse_marker_file") or die "Could not open $eclipse_marker_file: $!";
+        
+        # Pass the filehandle (MARKER_FH) to Label::file_header for writing the file header.
+        Label::file_header($openfile, *MARKER_FH);
+        
+        # Write the first and last eclipse data points to the file.
+        # These are formatted with the latitude, longitude, time, and display properties.
+        printf MARKER_FH "$eclipsetrack[1]->{'clat'}$eclipsetrack[1]->{'clong'} \"%02d:%02d\" color=Grey align=left\n",
+            $eclipsetrack[1]->{'hour'}, $eclipsetrack[1]->{'minute'};
+        
+        printf MARKER_FH "$eclipsetrack[($counter-1)]->{'clat'}$eclipsetrack[($counter-1)]->{'clong'} \"%02d:%02d\" color=Grey align=right\n",
+            $eclipsetrack[($counter-1)]->{'hour'}, $eclipsetrack[($counter-1)]->{'minute'};
+        
+        # Loop through the rest of the eclipse data.
         while ($recounter < $counter) {
+            # If the minute matches specific values (e.g., 00, 20, 40), write the data to the file.
             if ($eclipsetrack[$recounter]->{'minute'} =~ /[240]0/) {
-                printf MF "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[($recounter)]->{'clong'} \"%02d:%02d\" color=Grey align=top symbolsize=4\n",$eclipsetrack[($recounter)]->{'hour'}, $eclipsetrack[($recounter)]->{'minute'};
+                printf MARKER_FH "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[$recounter]->{'clong'} \"%02d:%02d\" color=Grey align=top symbolsize=4\n",
+                    $eclipsetrack[$recounter]->{'hour'}, $eclipsetrack[$recounter]->{'minute'};
                 $recounter++;
             }
             
+            # Increment the recounter to process the next data point.
             $recounter++;
         }
     }
     
-    close MF;
+    # Close the file after all data has been written.
+    close MARKER_FH or warn "Could not close $eclipse_marker_file: $!";
 }
 
-sub writeouteclipsearcboarder () {
+
+sub writeouteclipsearcboarder {
     my ($counter) = @_;
     my $recounter = 1;
     my @eclipsetrack;
@@ -382,39 +467,88 @@ sub writeouteclipsearcboarder () {
     }
 }
 
-sub writeouteclipsearccenter () {
-    my ($counter) = @_;
-    my $recounter = 1;
-    my @eclipsetrack;
+sub writeouteclipsearccenter {
+    # 26 September 2024
+    # Key Modifications:
+        # Pass Filehandle to Label::file_header:  
+            # We now pass the filehandle MARKER_FH to Label::file_header by modifying the call:
+        # Error Handling for File Operations:
+            # Added error handling (or die) when opening the file and a warning (or warn) when closing the file to make it more robust.
+        # Consistent Filehandle Usage:
+            # The filehandle MARKER_FH is used consistently in all print and printf statements instead of MF, ensuring that the right filehandle is referenced.
+
+ 
+    my ($counter) = @_;     # $counter holds the number of eclipse data points.
+    my $recounter = 1;      # Initialize recounter to start processing eclipse data from the second entry.
+    my @eclipsetrack;       # Array to hold eclipse tracking data (assumed populated elsewhere).
     
-    if ($counter =~ /FAILED/) {}
-    else {
+    # Check if $counter indicates a failed condition (e.g., "FAILED").
+    if ($counter =~ /FAILED/) {
+        # Do nothing if $counter is "FAILED".
+    } else {
+        # Define the name of the open file (for header purposes).
         my $openfile = 'Eclipse';
-        open (MF, ">$eclipse_arc_file");
-        &file_header($openfile);
-        print MF "# Central Track\n";
         
+        # Open the eclipse arc file for writing.
+        # Add error handling in case the file cannot be opened.
+        open (ARC_FH, ">$eclipse_arc_file") or die "Could not open $eclipse_arc_file: $!";
+        
+        # Pass the filehandle (ARC_FH) to Label::file_header for writing the file header.
+        Label::file_header($openfile, *ARC_FH);
+        
+        # Write a comment line indicating the start of the central track data.
+        print ARC_FH "# Central Track\n";
+        
+        # Loop through the eclipse tracking data and print each relevant data point.
         while  ($recounter < $counter) {
-            if (($recounter+1) != $counter) {
-                print MF "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[$recounter]->{'clong'}$eclipsetrack[$recounter+1]->{'clat'}$eclipsetrack[$recounter+1]->{'clong'} color=Black spacing=0.2\n";
+            # If this is not the last recounter, print the current and next data point.
+            if (($recounter + 1) != $counter) {
+                print ARC_FH "$eclipsetrack[$recounter]->{'clat'}$eclipsetrack[$recounter]->{'clong'}$eclipsetrack[$recounter+1]->{'clat'}$eclipsetrack[$recounter+1]->{'clong'} color=Black spacing=0.2\n";
             }
+            # Increment the recounter to move to the next data point.
             $recounter++;
         }
-        close MF;
+        
+        # Close the file after all data has been written, with error handling.
+        close ARC_FH or warn "Could not close $eclipse_arc_file: $!";
     }
 }
 
-sub writeouteclipsefilesnone() {
-    open (MF, ">$eclipse_marker_file");
+
+sub writeouteclipsefilesnone {
+    # Key actions:
+        # Opening Files:
+            # The subroutine opens two files, $eclipse_marker_file and $eclipse_arc_file, for writing. These files are overwritten if they exist (> mode).
+        # Writing Headers:
+            # After opening each file, it passes the variable $openfile to Label::file_header($openfile), which presumably writes some metadata or 
+            # header information into the file.
+        # Closing Files:
+            # After writing the header, the subroutine closes the files. If closing fails, a warning message is displayed (using warn).
+    
+    # Open the eclipse marker file for writing, with error handling.
+    open (MARKER_FH, ">$eclipse_marker_file") or die "Could not open $eclipse_marker_file: $!";
+    
+    # Assign a name to the open file (used for the header).
     my $openfile = 'Eclipse';
-    &file_header($openfile);
-    close MF;
-    open (MF, ">$eclipse_arc_file");
-    &file_header($openfile);
-    close MF;
+    
+    # Call Label::file_header and pass the filehandle MARKER_FH.
+    Label::file_header($openfile, *MARKER_FH);
+
+    # Close the marker file with error handling.
+    close MARKER_FH or warn "Could not close $eclipse_marker_file: $!";
+    
+    # Open the eclipse archive file for writing, with error handling.
+    open (ARC_FH, ">$eclipse_arc_file") or die "Could not open $eclipse_arc_file: $!";
+    
+    # Call Label::file_header and pass the filehandle ARC_FH.
+    Label::file_header($openfile, *ARC_FH);
+    
+    # Close the archive file with error handling.
+    close ARC_FH or warn "Could not close $eclipse_arc_file: $!";
 }
 
-sub writeouteclipselabel() {
+
+sub writeouteclipselabel {
     my ($record_number,$track_number,$countdown) = @_;
     $countdown *= 1;
     my $answer;
@@ -426,7 +560,7 @@ sub writeouteclipselabel() {
     $countdown = ($countdown-($hours*3600));
     $answer = ($countdown / 60 );
     ($minutes,$ignore) = split('\.',$answer);
-    #print "countdown = $countdown, hours = $hours, min = $min\n";
+
     my $biggestlat = $eclipsetrack[1]->{'clat'};
     my $smallestlat = $eclipsetrack[1]->{'clat'};
     my $biggestlong = $eclipsetrack[1]->{'clong'};
@@ -459,7 +593,7 @@ sub writeouteclipselabel() {
     close MF;
 }
 
-sub refinedata() {
+sub refinedata {
     my ($record_number) = @_;
     my $counter = 0;
     my $recounter = 0;

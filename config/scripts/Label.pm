@@ -1,14 +1,29 @@
 package Label;
 use strict;
 use warnings;
+use Time::Local;  # Load the Time::Local module
+
 use Globals qw($label_file);
 
 sub WriteoutLabel {
+    # 26 September 2024
+    # Key Changes
+        # Pass Filehandle to file_header:
+            # The filehandle MF is passed to file_header explicitly
+        # Error Handling for File Operations:
+            # Added or die for the file opening operation to ensure the script stops if the file cannot be opened.
+        # Declare %warning_length: 
+            # The %warning_length hash is declared and initialized with default values using 
+            # the // operator, which ensures that the values default to 1 if they are undefined. This avoids the errors about %warning_length not being declared.
+        # Comments:
+            # Added detailed inline comments explaining each part of the subroutine for easier maintenance and understanding.
+
+    # Accepts multiple update flags as arguments.
     my ($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label) = @_;
-    my $labelsettings;
-    my @Yco_ords;
-    my @Xco_ords;
-    my @text1;
+    my $labelsettings;  # Stores various label settings.
+    my @Yco_ords;       # Array for Y coordinates.
+    my @Xco_ords;       # Array for X coordinates.
+    my @text1;          # Arrays for various text fields.
     my @text2;
     my @text3;
     my @text4;
@@ -16,10 +31,10 @@ sub WriteoutLabel {
     my @monthday;
     my @monthlet;
     my @yeartime;
-    my @colour;
-    my @image;
-    my @position;
-    my $sec;
+    my @colour;         # Array for label colors.
+    my @image;          # Array for image settings.
+    my @position;       # Array for positions.
+    my $sec;            # Variables for time components.
     my $min;
     my $hour;
     my $year;
@@ -28,28 +43,33 @@ sub WriteoutLabel {
     my $wday;
     my $yday;
     my $isdst;
-    my $thisday;
-    my $thismonth;
-    my $time_now;
-    my $openfile;
-    my $labellocate;
+    my $thisday;        # Current weekday.
+    my $thismonth;      # Current month.
+    my $time_now;       # Current time as a timestamp.
+    my $openfile;       # Name of the file being processed.
+    my $labellocate;    # Location for the label.
 
-    # Update flags
+    # Update flags to ensure they are set to 0 or 1.
     $update_earth = $update_earth >= 1 ? 1 : 0;
     $update_norad = $update_norad >= 1 ? 1 : 0;
     $update_cloud = $update_cloud >= 1 ? 1 : 0;
     $update_hurricane = $update_hurricane >= 1 ? 1 : ($update_hurricane == -1 ? 1 : 0);
     $update_volcano = $update_volcano >= 1 ? 1 : 0;
+    
+    # If $update_label is set, reset all other update flags to 0.
     if ($update_label >= 1) {
         $update_earth = $update_norad = $update_cloud = $update_hurricane = $update_volcano = 0;
     }
 
-    my $counter = 0;
-    my $ok_color = $labelsettings->{'LabelColorOk'};
-    my $warn_color = $labelsettings->{'LabelColorWarn'};
-    my $failed_color = $labelsettings->{'LabelColorError'};
+    my $counter = 0;  # Initialize counter for tracking entries.
+    my $ok_color = $labelsettings->{'LabelColorOk'};       # OK label color.
+    my $warn_color = $labelsettings->{'LabelColorWarn'};   # Warning label color.
+    my $failed_color = $labelsettings->{'LabelColorError'};# Failed label color.
 
+    # Open the label file for reading.
     open(MF, "<$label_file") or die "Cannot open $label_file: $!";
+
+    # Read the file line by line, splitting data into the respective arrays.
     while (<MF>) {
         (
             $Yco_ords[$counter], $Xco_ords[$counter], $text1[$counter], $text2[$counter], 
@@ -59,75 +79,84 @@ sub WriteoutLabel {
         ) = split(" ");
         $counter++;
     }
+    
+    # Close the label file after reading.
     close(MF);
 
+    # Define the %warning_length hash.
     my %warning_length = (
-        quake        => $labelsettings->{'LabelWarningQuake'} * 1,
-        cloud        => $labelsettings->{'LabelWarningCloud'} * 1,
-        norad        => $labelsettings->{'LabelWarningNorad'} * 1,
-        hurricane    => $labelsettings->{'LabelWarningStorm'} * 1,
-        volcano      => $labelsettings->{'LabelWarningVolcano'} * 1,
-        quakeerror   => $labelsettings->{'LabelWarningQuake'} * 2,
-        clouderror   => $labelsettings->{'LabelWarningCloud'} * 2,
-        noraderror   => $labelsettings->{'LabelWarningNorad'} * 2,
-        hurricaneerror => $labelsettings->{'LabelWarningStorm'} * 2,
-        volcanoerror => $labelsettings->{'LabelWarningVolcano'} * 2,
+        quake          => ($labelsettings->{'LabelWarningQuake'} // 1) * 1,
+        cloud          => ($labelsettings->{'LabelWarningCloud'} // 1) * 1,
+        norad          => ($labelsettings->{'LabelWarningNorad'} // 1) * 1,
+        hurricane      => ($labelsettings->{'LabelWarningStorm'} // 1) * 1,
+        volcano        => ($labelsettings->{'LabelWarningVolcano'} // 1) * 1,
+        quakeerror     => ($labelsettings->{'LabelWarningQuake'} // 1) * 2,
+        clouderror     => ($labelsettings->{'LabelWarningCloud'} // 1) * 2,
+        noraderror     => ($labelsettings->{'LabelWarningNorad'} // 1) * 2,
+        hurricaneerror => ($labelsettings->{'LabelWarningStorm'} // 1) * 2,
+        volcanoerror   => ($labelsettings->{'LabelWarningVolcano'} // 1) * 2,
     );
 
-    ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime(time);
-    $thisday = (qw(Sun Mon Tues Wed Thurs Fri Sat))[$wday];
-    $thismonth = (qw(Jan Feb March April May June July Aug Sept Oct Nov Dec))[$mon];
-    $year += 1900;
-    $time_now = time;
-
+    # Open the label file for writing, with error handling.
     open(MF, ">$label_file") or die "Cannot open $label_file: $!";
+    
+    # Set the open file name to 'UpdateLabel'.
     $openfile = 'UpdateLabel';
-    &file_header($openfile);
 
-    my $recounter = 0;
+    # Pass the filehandle (MF) to file_header for writing the file header.
+    file_header($openfile, *MF);
 
+    my $recounter = 0;  # Initialize recounter.
+
+    # Loop through each entry and process updates.
     while ($recounter != $counter) {
         if ($update_earth && $text1[$recounter] =~ /Earthquake/) {
+            # Process Earthquake updates.
             process_update(\*MF, $update_earth, 'quake', $ok_color, $warn_color, $failed_color, 
                            $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
                            $text2[$recounter], $text3[$recounter], $text4[$recounter], 
                            $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
                            $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
                            $position[$recounter], \%warning_length, $wday);
-            $update_earth = 0;
+            $update_earth = 0;  # Reset flag after update.
         } elsif ($update_norad && $text1[$recounter] =~ /NORAD/) {
+            # Process NORAD updates.
             process_update(\*MF, $update_norad, 'norad', $ok_color, $warn_color, $failed_color, 
                            $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
                            $text2[$recounter], $text3[$recounter], $text4[$recounter], 
                            $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
                            $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
                            $position[$recounter], \%warning_length, $wday);
-            $update_norad = 0;
+            $update_norad = 0;  # Reset flag after update.
         } elsif ($update_cloud && $text1[$recounter] =~ /Cloud/) {
+            # Process Cloud updates.
             process_update(\*MF, $update_cloud, 'cloud', $ok_color, $warn_color, $failed_color, 
                            $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
                            $text2[$recounter], $text3[$recounter], $text4[$recounter], 
                            $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
                            $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
                            $position[$recounter], \%warning_length, $wday);
-            $update_cloud = 0;
+            $update_cloud = 0;  # Reset flag after update.
         } elsif ($update_hurricane && $text1[$recounter] =~ /Storm/) {
+            # Process Hurricane updates.
             process_update(\*MF, $update_hurricane, 'hurricane', $ok_color, $warn_color, $failed_color, 
                            $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
                            $text2[$recounter], $text3[$recounter], $text4[$recounter], 
                            $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
                            $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
                            $position[$recounter], \%warning_length, $wday);
-            $update_hurricane = 0;
+            $update_hurricane = 0;  # Reset flag after update.
         } elsif ($update_volcano && $text1[$recounter] =~ /Volcano/) {
+            # Process Volcano updates.
             process_update(\*MF, $update_volcano, 'volcano', $ok_color, $warn_color, $failed_color, 
                            $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
                            $text2[$recounter], $text3[$recounter], $text4[$recounter], 
                            $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
                            $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
                            $position[$recounter], \%warning_length, $wday);
-            $update_volcano = 0;
+            $update_volcano = 0;  # Reset flag after update.
         } elsif ($Yco_ords[$recounter] =~ /-\d\d/ && $text3[$recounter] =~ /Last/ && $text4[$recounter] =~ /Updated/) {
+            # Process last update for certain entries.
             process_last_update(\*MF, \%warning_length, $ok_color, $warn_color, $failed_color, 
                                 $time_now, $Yco_ords[$recounter], $Xco_ords[$recounter], 
                                 $text1[$recounter], $text2[$recounter], $text3[$recounter], 
@@ -135,10 +164,14 @@ sub WriteoutLabel {
                                 $monthlet[$recounter], $yeartime[$recounter], $colour[$recounter], 
                                 $image[$recounter], $position[$recounter]);
         }
+        # Move to the next entry.
         $recounter++;
     }
-    close(MF);
+
+    # Close the file after all updates are written.
+    close(MF) or warn "Could not close $label_file: $!";
 }
+
 
 sub process_update {
     my ($fh, $update_status, $type, $ok_color, $warn_color, $failed_color, 
@@ -246,9 +279,16 @@ sub num_of_month {
 }
 
 sub file_header {
-    my ($openfile) = @_;
-    print MF "# File: $openfile\n";
-    print MF "# Generated by script\n";
+    my ($openfile, $filehandle) = @_;  # Accept the filehandle as an argument
+
+    # Check if the filehandle is valid before proceeding
+    unless (defined $filehandle && fileno($filehandle)) {
+        die "Filehandle is not valid or not open in Label::file_header";
+    }
+
+    # Dereference the filehandle glob to ensure it's treated as an actual filehandle
+    print $filehandle "# This is the header for $openfile\n";
+    print $filehandle "# Additional header information...\n";
 }
 
 1; # End of the module

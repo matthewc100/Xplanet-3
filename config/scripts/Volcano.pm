@@ -9,64 +9,100 @@ our @EXPORT_OK = qw(
     volcanodata_checked
 );
 
-use Globals qw($volcano_marker_file $volcano_location get_webpage);
+use Globals qw($volcano_marker_file $volcanosettings get_webpage);
+
+## VOLCANO SITES
+# I don't know much about these sites yet.  This should be another readme file after the research is done.  
+my $volcano_location = "https://volcano.si.edu/news/WeeklyVolcanoCAP.xml";
 
 sub WriteoutVolcano {
-    my ($counter) = @_;
-    my $recounter = 0;
-    my $volcanosettings;
-    my @volcanodata;
-    my $locations;
+    # 26 September 2024
+    # Key Modifications:
+        # The filehandle VOLCANO_FH is passed to Label::file_header
+    # Error Handling for File Operations:
+        # Added or die for the file opening operation to ensure the script stops if the file cannot be opened, and or warn for file closing to provide warnings 
+        # in case closing fails
+    # Consistent Filehandle Usage:
+        # The filehandle VOLCANO_FH is used in all print and printf statements instead of the generic MF
+    # Added inline comments to explain each part of the subroutine and the logic behind processing active volcano data
+    my ($counter) = @_;  # Argument for the number of volcano entries to process.
+    my $recounter = 0;   # Initialize recounter for looping through volcano entries.
+    my $volcanosettings; # Settings for volcano configuration (assumed populated elsewhere).
+    my @volcanodata;     # Array to hold volcano data (assumed populated elsewhere).
+    my $locations;       # Variable for volcano locations (assumed populated elsewhere).
 
+    # Check if the counter is valid and not set to "FAILED".
     if ($counter !~ /FAILED/) {
-        my $openfile = 'Volcano';
-        open (MF, ">$volcano_marker_file");
-        &file_header($openfile);
+        my $openfile = 'Volcano';  # Set the open file name for the header.
 
+        # Open the volcano marker file for writing, with error handling.
+        open (VOLCANO_FH, ">$volcano_marker_file") or die "Cannot open $volcano_marker_file: $!";
+
+        # Pass the filehandle (VOLCANO_FH) to Label::file_header for writing the header.
+        Label::file_header($openfile, *VOLCANO_FH);
+
+        # Loop through each volcano entry and write its data to the file.
         while ($recounter < $counter) {
+            # Extract volcano data for the current recounter index.
             my $long = $volcanodata[$recounter]->{'long'};
             my $lat = $volcanodata[$recounter]->{'lat'};
             my $name = $volcanodata[$recounter]->{'name'};
             my $elev = $volcanodata[$recounter]->{'elev'};
 
+            # Format latitude and longitude with two decimal places.
             $lat  = sprintf("% 7.2f", $lat);
             $long = sprintf("% 7.2f", $long);
-            print MF "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorInner'} symbolsize=$volcanosettings->{'VolcanoCircleSizeInner'}\n";
-            print MF "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorMiddle'} symbolsize=$volcanosettings->{'VolcanoCircleSizeMiddle'}\n";
 
+            # Print inner and middle circle markers for the volcano.
+            print VOLCANO_FH "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorInner'} symbolsize=$volcanosettings->{'VolcanoCircleSizeInner'}\n";
+            print VOLCANO_FH "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorMiddle'} symbolsize=$volcanosettings->{'VolcanoCircleSizeMiddle'}\n";
+
+            # If volcano names are enabled in the settings, print the volcano name with alignment and color settings.
             if ($volcanosettings->{'VolcanoNameOnOff'} =~ /On/) {
                 if ($volcanosettings->{'VolcanoImageList'} =~ /\w/) {
-                    print MF "$lat $long \"$name\" align=$volcanosettings->{'VolcanoNameAlign'} color=$volcanosettings->{'VolcanoNameColor'} image=$volcanosettings->{'VolcanoImageList'} ";
-
+                    print VOLCANO_FH "$lat $long \"$name\" align=$volcanosettings->{'VolcanoNameAlign'} color=$volcanosettings->{'VolcanoNameColor'} image=$volcanosettings->{'VolcanoImageList'} ";
+                    
+                    # If transparency for images is enabled, add the transparency setting.
                     if ($volcanosettings->{'VolcanoImageTransparent'} =~ /\d/) {
-                        print MF "transparent=$volcanosettings->{'VolcanoImageTransparent'}";
+                        print VOLCANO_FH "transparent=$volcanosettings->{'VolcanoImageTransparent'}";
                     }
                 } else {
-                    print MF "$lat $long \"$name\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'} align=$volcanosettings->{'VolcanoNameAlign'}";
+                    # If no image is specified, print the volcano name with circle and alignment settings.
+                    print VOLCANO_FH "$lat $long \"$name\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'} align=$volcanosettings->{'VolcanoNameAlign'}";
                 }
             } else {
-                print MF "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'}";
+                # Print the outer circle for the volcano if names are not enabled.
+                print VOLCANO_FH "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'}";
             }
-            print MF "\n";
 
+            # Move to the next line after writing the volcano marker.
+            print VOLCANO_FH "\n";
+
+            # If volcano details are enabled in the settings, write the detailed data.
             if ($volcanosettings->{'VolcanoDetailList'} =~ /\w/) {
                 my $tmp1 = $volcanosettings->{'VolcanoDetailList'};
-
+                
+                # Replace placeholders with actual volcano data.
                 $tmp1 =~ s/<lat>/$lat/g;
                 $tmp1 =~ s/<long>/$long/g;
                 $tmp1 =~ s/<elevation>/$elev/g;
                 $tmp1 =~ s/<elev>/$elev/g;
                 $tmp1 =~ s/<name>/$name/g;
                 $tmp1 =~ s/<location>/$locations/g;
-                print MF "$lat $long \"$tmp1\" color=$volcanosettings->{'VolcanoDetailColor'} align=$volcanosettings->{'VolcanoDetailAlign'} image=none\n";
+
+                # Print the volcano detail data with alignment and color settings.
+                print VOLCANO_FH "$lat $long \"$tmp1\" color=$volcanosettings->{'VolcanoDetailColor'} align=$volcanosettings->{'VolcanoDetailAlign'} image=none\n";
             }
 
+            # Increment recounter to process the next volcano entry.
             $recounter++;
         }
 
-        close MF;
+        # Close the file after writing all data, with error handling.
+        close VOLCANO_FH or warn "Could not close $volcano_marker_file: $!";
     }
 }
+
 
 sub get_volcanodata {
     my $flag = 1;

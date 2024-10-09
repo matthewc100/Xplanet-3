@@ -1,0 +1,5 @@
+Norad.pm requirements
+
+I am looking through the Norad.pm module and I think we need to modernize this module.  In the twenty years since the originator wrote this module, space flight has become much more common.  In fact, the Space Shuttle (aka 'STS') has flown and retired.  There are more satellites than ever and too many to consider processing uniquely.  Therefore, I propose that we look to modernize the Norad module along the following 'requirements'.  
+
+1. 

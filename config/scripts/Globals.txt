@@ -1,0 +1,518 @@
+package Globals;
+use strict;
+use warnings;
+use Exporter 'import';
+
+our @EXPORT_OK = qw(
+    $quakesettings 
+    $settings  
+    $quake_marker_file
+    @quakedata
+    $quake_location 
+    $quake_location_CSV_24H_SIG 
+    $quake_location_CSV_24H_45 
+    $quake_location_CSV_24H_25 
+    $quake_location_CSV_24H_10 
+    $quake_location_CSV_24H_ALL 
+    $quake_location_CSV_7D_SIG 
+    $quake_location_CSV_7D_45 
+    $quake_location_CSV_7D_25 
+    $quake_location_CSV_7D_10 
+    $quake_location_CSV_7D_ALL
+    $quake_location_CSV_30D_SIG 
+    $quake_location_CSV_30D_45 
+    $quake_location_CSV_30D_25 
+    $quake_location_CSV_30D_10 
+    $quake_location_CSV_30D_ALL
+    $Earthquake
+    set_quake_marker_file
+    set_quakedata
+    set_quake_location
+    set_pversion
+
+    $noradsettings 
+    $isstle_file 
+    $iss_file 
+    $xplanet_satellites_dir 
+    $iss_location 
+    $hst_location 
+    $sts_location 
+    $other_locations1 
+    $xplanet_images_dir 
+    get_webpage
+
+    $volcano_marker_file
+    $volcano_location
+    $volcanosettings 
+
+    $stormsettings
+    $storm_past_location
+    $storm_future_location
+    $storm_base_location
+    $hurricane_arc_file
+    $hurricane_marker_file
+
+    $labelsettings
+    $label_file
+    set_label_file 
+
+    $cloudsettings          
+
+    $eclipse_arc_file
+    $eclipse_data_file
+    $eclipse_location
+    $eclipse_marker_file
+    @eclipsedata
+    @eclipsetrack
+    @eclipserefined
+);
+
+our $quakesettings = {
+    'QuakePixelMax' => 10,
+    'QuakePixelMin' => 2,
+    'QuakePixelFactor' => 1.5,
+    'QuakeDetailColor' => 'Multi',
+    'QuakeDetailColorMin' => 'Blue',
+    'QuakeDetailColorInt' => 'Yellow',
+    'QuakeDetailColorMax' => 'Red',
+    'QuakeCircleColor' => 'Multi',
+    'QuakeMinimumSize' => 5,
+    'QuakeImageList' => '',
+    'QuakeImageTransparent' => 1,
+    'QuakeDetailList' => '<date> <time> <lat> <long> <depth> <mag> <quality> <location>',
+    'QuakeDetailAlign' => 'center',
+    'QuakeReportingDuration' => 'day',
+    'QuakeReportingSize' => 'significant',
+};
+
+our (
+
+    $noradsettings, 
+    $isstle_file, 
+    $iss_file, 
+    $xplanet_satellites_dir, 
+    $iss_location, 
+    $hst_location, 
+    $sts_location, 
+    $other_locations1,
+
+    $quake_marker_file,
+    @quakedata,
+    $quake_location,
+    $Earthquake,
+
+    $xplanet_images_dir,
+
+    $volcano_marker_file,
+    $volcano_location,
+    $volcanosettings,
+
+    $stormsettings,
+    $storm_past_location,
+    $storm_future_location,
+    $storm_base_location,
+    $hurricane_arc_file,
+    $hurricane_marker_file,
+
+    $label_file,
+    $labelsettings,
+
+    $eclipse_arc_file,
+    $eclipse_data_file,
+    $eclipse_location,
+    $eclipse_marker_file,
+    @eclipsedata,
+    @eclipsetrack,
+    @eclipserefined
+);
+
+$volcanosettings = {
+    'VolcanoCircleColorInner' => 'Red',
+    'VolcanoCircleSizeInner' => 3,
+    'VolcanoCircleColorMiddle' => 'Yellow',
+    'VolcanoCircleSizeMiddle' => 5,
+    'VolcanoNameOnOff' => 'On',
+    'VolcanoImageList' => '',
+    'VolcanoImageTransparent' => '',
+    'VolcanoCircleColorOuter' => 'Blue',
+    'VolcanoCircleSizeOuter' => 7,
+    'VolcanoNameAlign' => 'Left',
+    'VolcanoNameColor' => 'Black',
+    'VolcanoDetailList' => '<name> - <location>',
+    'VolcanoDetailColor' => 'White',
+    'VolcanoDetailAlign' => 'Right'
+};
+
+our $cloudsettings = {
+    'CloudMirrorA' => 'http://example.com/mirrorA',
+    'CloudMirrorB' => 'http://example.com/mirrorB',
+    'CloudMirrorC' => 'http://example.com/mirrorC',
+    'CloudMirrorD' => 'http://example.com/mirrorD',
+    'CloudMirrorE' => 'http://example.com/mirrorE',
+    'CloudMirrorF' => 'http://example.com/mirrorF',
+    'CloudMirrorG' => 'http://example.com/mirrorG',
+    'CloudMirrorH' => 'http://example.com/mirrorH',
+    'CloudMirrorI' => 'http://example.com/mirrorI',
+    'CloudMirrorJ' => 'http://example.com/mirrorJ',
+    'CloudMirrorK' => 'http://example.com/mirrorK',
+    'CloudMirrorL' => 'http://example.com/mirrorL',
+    'CloudMirrorM' => 'http://example.com/mirrorM',
+    'CloudMirrorN' => 'http://example.com/mirrorN'
+};
+
+#################################################
+#  CONFIGURATION SECTION                        #
+#################################################
+#
+# 10 September 2024
+# 
+# Many of the variables and settings needed to be rescoped appropriately.  By moving the configuration
+# variables to the Globals.pm module, we can better support maintenance and future updates.  
+#
+# Initialize variables that remain CONSTANT
+#
+# File paths
+our $quake_marker_file = "$xplanet_markers_dir\\quake";
+our $volcano_marker_file = "$xplanet_markers_dir\\volcano";
+our $hurricane_marker_file = "$xplanet_markers_dir\\storm";
+our $hurricane_arc_file = "$xplanet_arcs_dir\\storm";
+our $label_file = "$xplanet_markers_dir\\updatelabel";
+our $eclipse_marker_file = "$xplanet_markers_dir\\eclipse";
+our $eclipse_arc_file = "$xplanet_arcs_dir\\eclipse";
+our $eclipse_data_file = "$xplanet_config_dir\\totalmarker.dat";
+our $settings_ini_file = "$xplanet_config_dir\\totalmarker.ini";
+#
+# Directory paths
+our $xplanet_dir = "C:\\Users\\mcoblent\\onedrive\\xplanet\\xplanet-1.3.0\\xplanet-3";
+our $xplanet_markers_dir = "$xplanet_dir\\markers";
+our $xplanet_arcs_dir = "$xplanet_dir\\arcs";
+our $xplanet_satellites_dir = "$xplanet_dir\\satellites";
+our $xplanet_images_dir = "$xplanet_dir\\images";
+our $xplanet_config_dir = "$xplanet_dir\\config";
+#
+# URLs and Locations
+our $quake_location = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+our $storm_base_location = "https://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file";
+our $storm_past_location = "https://www.nrlmry.navy.mil/archdat/test/kml/TC/";
+our $storm_future_location = "https://www.nrlmry.navy.mil/atcf_web/docs/current_storms/";
+our $iss_location = "https://www.celestrak.com/NORAD/elements/stations.txt";
+our $volcano_location = "https://volcano.si.edu/news/WeeklyVolcanoCAP.xml";
+our $eclipse_location = "https://sunearth.gsfc.nasa.gov/eclipse/SEpath/";
+our $refined_eclipse_data = "https://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
+our $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
+#
+## STORMS AND HURRICANES
+# 
+# The sites listed here have gone dark and the data doesn't exist in the same form it once did.
+# This state of affairs is one of the reasons for refactoring the TotalMarker script into modules. 
+# Updating and maintaining the script should be be easier once it's modular.  
+#
+$storm_base_location = "https://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file";
+$storm_past_location = "https://www.nrlmry.navy.mil/archdat/test/kml/TC/";
+$storm_future_location = "https://www.nrlmry.navy.mil/atcf_web/docs/current_storms/";
+
+## VOLCANO SITES
+# I don't know much about these sites yet.  This should be another readme file after the research is done.  
+$volcano_location = "https://volcano.si.edu/news/WeeklyVolcanoCAP.xml";
+#our $volcano_location = "https://www.volcano.si.edu/bgvn.cfm";
+#our $volcano_location = "https://www.volcano.si.edu/news/WeeklyVolcanoCAP.xml";
+
+## CLOUD SITES
+# I don't know much about these sites yet.  This should be another readme file after the research is done.
+# I get my cloud image from the Xeric guys.  Note that the credentials for downloading the cloud map are 
+# privatized in a separate file.  This file is maintained by the user.  There is a .gitignore setting for 
+# this credential file to ensure it is not uploaded to Git.  I'll have to create a readme for that.  
+our $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
+#our $cloud_image_base = "https://xplanetclouds.com/free/coral/";
+#
+## EARTHQUAKE SITES
+$quake_location = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+
+our $quake_location_CSV_24H_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.csv";
+our $quake_location_CSV_24H_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.csv";
+our $quake_location_CSV_24H_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.csv";
+our $quake_location_CSV_24H_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.csv";
+our $quake_location_CSV_24H_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv";
+
+our $quake_location_CSV_7D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.csv";
+our $quake_location_CSV_7D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.csv";
+our $quake_location_CSV_7D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.csv";
+our $quake_location_CSV_7D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.csv";
+our $quake_location_CSV_7D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+
+our $quake_location_CSV_30D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.csv";
+our $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv";
+our $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
+our $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
+our $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
+
+## ECLIPSE SITES
+our $refined_eclipse_data = "https://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
+$eclipse_location = "https://sunearth.gsfc.nasa.gov/eclipse/SEpath/";
+
+## NORAD SITES
+#
+# It's important to note what some of the abbreviations mean.  STS, for example is the Space Transportation System
+# also called the Space Shuttle.  The Space Shuttle has been retired.  Other items should be added to the list.
+# For example Blue Dragon or SpaceX.  Instructions on getting those sites need to be included in a readme file 
+# somewhere.  The sts files should be commented out and once I verify everything, I will do that.  
+# iss = International Space Station
+# css = Chinese Space Station
+# hst = Hubble Space Telescope
+#
+$iss_location = "https://www.celestrak.com/NORAD/elements/stations.txt";
+$other_locations1 = "https://www.celestrak.com/NORAD/elements/science.txt";
+$hst_location = "https://www.celestrak.com/NORAD/elements/tdrss.txt";
+$sts_location = "https://www.celestrak.com/NORAD/elements/sts.txt";
+our $sts_dates = "https://www.seds.org/~spider/shuttle/shu-sche.html";
+our $backup_sat_location = "https://www.idb.com.au/joomla/index.php";
+
+## DYNAMIC VARIABLES
+# Declare the global variables that will be set dynamically
+$quake_marker_file;
+$volcano_marker_file;
+$hurricane_marker_file;
+$hurricane_arc_file;
+$label_file;
+$eclipse_marker_file;
+$eclipse_arc_file;
+$eclipse_data_file;
+our $settings_ini_file;
+
+#################################################
+#  END CONFIGURATION SECTION                    #
+#################################################
+our $settings = {
+    'XplanetVersion' => '1.2.3es',
+    'pversion' => undef,
+};
+
+# Setter function to set the value of $quake_marker_file
+sub set_quake_marker_file {
+    my ($value) = @_;
+    $quake_marker_file = $value;
+}
+
+# Setter function to set the value of @quakedata
+sub set_quakedata {
+    my (@data) = @_;
+    @quakedata = @data;
+}
+
+# Setter function to set the value of $quake_location
+sub set_quake_location {
+    my ($value) = @_;
+    $quake_location = $value;
+}
+
+# Setter function to set the value of $pversion in $settings
+sub set_pversion {
+    my ($value) = @_;
+    $settings->{'pversion'} = $value;
+}
+
+sub get_webpage {
+    my ($url) = @_;
+    # Add the logic to fetch the webpage here
+    # This is a placeholder
+    return "webpage content";
+}
+
+# Setter function to set the value of $label_file
+sub set_label_file {
+    my ($value) = @_;
+    $label_file = $value;
+}
+
+sub set_eclipse_data_file {
+    my ($value) = @_;
+    $eclipse_data_file = $value;
+}
+
+sub set_eclipse_marker_file {
+    my ($value) = @_;
+    $eclipse_marker_file = $value;
+}
+
+sub set_eclipse_arc_file {
+    my ($value) = @_;
+    $eclipse_arc_file = $value;
+}
+
+sub get_settings {
+    # Get_Settings subroutine
+    #   This section of code is part of a subroutine that processes configuration settings, likely read from a file (e.g., an .ini file), 
+    #   and stores them in a hash called $labelsettings. Here’s a detailed explanation of what this code is doing and how it works: 
+    #
+    # What the Code Is Doing
+    #   Processing Each Line: The code is likely iterating over lines from a configuration file (e.g., an .ini file). Each line is split into a 
+    #   setting name ($setting) and a value ($result).
+    # 
+    #   Matching and Storing Settings: The if ($data1 =~ /Label/) condition checks if the current line is related to the "Label" section in the 
+    #   configuration. If it is, the code matches the specific setting name ($setting) using elsif statements and stores the corresponding value 
+    #   ($result) in the $labelsettings hash.
+    # 
+    # Key Concepts
+    #   $labelsettings Hash: 
+    #       $labelsettings is a hash that stores configuration settings related to "Label." Each key in the hash corresponds to a 
+    #       specific setting (e.g., 'LabelWarningQuake', 'LabelWarningVolcano'), and the value associated with each key is the setting's value as read 
+    #       from the configuration file.
+    # 
+    #   $setting and $result: 
+    #       $setting represents the name of the setting being processed (e.g., 'LabelWarningQuake'), and $result is the value of that setting. 
+    #       These are stored in the $labelsettings hash.
+    #
+    # 9 September 2024
+    # Key Improvements:
+    # 1. Removed Unnecessary $data1 and $tmp1: The variables $data1 and $tmp1 were not needed, so they have been removed for simplicity.
+    # 2. Direct Processing Based on $setting: The script now processes each line based directly on the $setting name. This simplifies 
+    #    the logic and makes it easier to maintain.
+    # 3. Efficient Debugging: The print statement now only prints $setting and $result, making the debugging output clearer.
+    # 4. Proper Error Handling for File Opening: Added an error message to handle the case where the settings file cannot be opened.
+    #
+    # How It Works:
+    #    Skipping Comments and Empty Lines: The next statements ensure that comments and empty lines are ignored.
+    #    Splitting =: The line is split into $setting and $result based on the = sign.
+    #    Pattern Matching on $setting: Depending on whether the setting relates to Quake, Volcano, Storm, etc., the appropriate hash is updated.
+    #
+    # Summary
+    #    Simplified Code: By removing the unnecessary $data1 and $tmp1 variables, the code is cleaner and easier to read.
+    #    Direct Matching of Settings: The settings are now matched directly based on the $setting value.
+    #    Improved Debugging: The debug output is simplified and only prints relevant information.
+    #    These settings are now properly scoped to be global. 
+    open (MF, "<$settings_ini_file") or die "Could not open settings file: $!";
+
+    while (<MF>) {
+        chomp;  # Remove newline characters
+
+        # Skip empty lines and comments (assuming comments start with '#')
+        next if /^\s*$/;  # Skip empty lines
+        next if /^\s*#/;  # Skip lines starting with '#'
+        
+        # Split the line into $setting and $result, with default values
+        my ($setting, $result) = split("=", $_, 2);
+        $setting //= '';  # Default to empty string if not defined
+        $result //= '';   # Default to empty string if not defined
+
+        # Debugging print statement
+        print "Setting = '$setting', Result = '$result'\n";
+            
+        if ($setting =~ /^Quake/) {
+            if ($setting =~ /QuakeDetailColorMin/) {$quakesettings->{'QuakeDetailColorMin'} = $result;}
+            elsif ($setting =~ /QuakeDetailColorInt/) {$quakesettings->{'QuakeDetailColorInt'} = $result;}
+            elsif ($setting =~ /QuakeDetailColorMax/) {$quakesettings->{'QuakeDetailColorMax'} = $result;}
+            elsif ($setting =~ /QuakeDetailAlign/) {$quakesettings->{'QuakeDetailAlign'} = $result;}
+            elsif ($setting =~ /QuakeCircleColor/) {$quakesettings->{'QuakeCircleColor'} = $result;}
+            elsif ($setting =~ /QuakePixelMax/) {$quakesettings->{'QuakePixelMax'} = $result;}
+            elsif ($setting =~ /QuakePixelMin/) {$quakesettings->{'QuakePixelMin'} = $result;}
+            elsif ($setting =~ /QuakePixelFactor/) {$quakesettings->{'QuakePixelFactor'} = $result;}
+            elsif ($setting =~ /QuakeImageTransparent/) {$quakesettings->{'QuakeImageTransparent'} = $result;}
+            elsif ($setting =~ /QuakeImageList/) {$quakesettings->{'QuakeImageList'} = $result;}
+            elsif ($setting =~ /QuakeDetailColor/) {$quakesettings->{'QuakeDetailColor'} = $result;}
+            elsif ($setting =~ /QuakeDetailList/) {$quakesettings->{'QuakeDetailList'} = $result;}
+            elsif ($setting =~ /QuakeMinimumSize/) {$quakesettings->{'QuakeMinimumSize'} = $result;}
+            elsif ($setting =~ /QuakeReportingDuration/) {$quakesettings->{'QuakeReportingDuration'} = $result;}
+            elsif ($setting =~ /QuakeReportingSize/) {$quakesettings->{'QuakeReportingSize'} = $result;}
+            elsif ($setting =~ /QuakeFade/) {$quakesettings->{'QuakeFade'} = $result;}                      
+        }
+            
+        elsif ($setting =~ /^Volcano/) {
+            if ($setting =~ /VolcanoCircleSizeInner/) {$volcanosettings->{'VolcanoCircleSizeInner'} = $result;}
+            elsif ($setting =~ /VolcanoCircleSizeMiddle/) {$volcanosettings->{'VolcanoCircleSizeMiddle'} = $result;}
+            elsif ($setting =~ /VolcanoCircleSizeOuter/) {$volcanosettings->{'VolcanoCircleSizeOuter'} = $result;}
+            elsif ($setting =~ /VolcanoCircleColorInner/) {$volcanosettings->{'VolcanoCircleColorInner'} = $result;}
+            elsif ($setting =~ /VolcanoCircleColorMiddle/) {$volcanosettings->{'VolcanoCircleColorMiddle'} = $result;}
+            elsif ($setting =~ /VolcanoCircleColorOuter/) {$volcanosettings->{'VolcanoCircleColorOuter'} = $result;}
+            elsif ($setting =~ /VolcanoNameOnOff/) {$volcanosettings->{'VolcanoNameOnOff'} = $result;}
+            elsif ($setting =~ /VolcanoNameColor/) {$volcanosettings->{'VolcanoNameColor'} = $result;}
+            elsif ($setting =~ /VolcanoNameAlign/) {$volcanosettings->{'VolcanoNameAlign'} = $result;}
+            elsif ($setting =~ /VolcanoImageTransparent/) {$volcanosettings->{'VolcanoImageTransparent'} = $result;}
+            elsif ($setting =~ /VolcanoImageList/) {$volcanosettings->{'VolcanoImageList'} = $result;}
+            elsif ($setting =~ /VolcanoDetailAlign/) {$volcanosettings->{'VolcanoDetailAlign'} = $result;}
+            elsif ($setting =~ /VolcanoDetailList/) {$volcanosettings->{'VolcanoDetailList'} = $result;}
+            elsif ($setting =~ /VolcanoDetailColor/) {$volcanosettings->{'VolcanoDetailColor'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Storm/) {
+            if ($setting =~ /StormColorTrackReal/) {$stormsettings->{'StormColorTrackReal'} = $result;}
+            elsif ($setting =~ /StormColorTrackPrediction/) {$stormsettings->{'StormColorTrackPrediction'} = $result;}
+            elsif ($setting =~ /StormColorName/) {$stormsettings->{'StormColorName'} = $result;}
+            elsif ($setting =~ /StormColorDetail/) {$stormsettings->{'StormColorDetail'} = $result;}
+            elsif ($setting =~ /StormAlignName/) {$stormsettings->{'StormAlignName'} = $result;}
+            elsif ($setting =~ /StormAlignDetail/) {$stormsettings->{'StormAlignDetail'} = $result;}
+            elsif ($setting =~ /StormImageTransparent/) {$stormsettings->{'StormImageTransparent'} = $result;}
+            elsif ($setting =~ /StormImageList/) {$stormsettings->{'StormImageList'} = $result;}
+            elsif ($setting =~ /StormDetailAlign/) {$stormsettings->{'StormDetailAlign'} = $result;}
+            elsif ($setting =~ /StormDetailList/) {$stormsettings->{'StormDetailList'} = $result;}
+            elsif ($setting =~ /StormTrackOnOff/) {$stormsettings->{'StormTrackOnOff'} = $result;}
+            elsif ($setting =~ /StormNameOnOff/) {$stormsettings->{'StormNameOnOff'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Eclipse/) {
+            if ($setting =~ /EclipseOnOff/) {$settings->{'EclipseOnOff'} = $result;}
+            elsif ($setting =~ /EclipseNotifyOnOff/) {$settings->{'EclipseNotifyOnOff'} = $result;}
+            elsif ($setting =~ /EclipseNotifyTimeHours/) {$settings->{'EclipseNotifyTimeHours'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Norad/) {
+            if ($setting =~ /NoradIssImage/) {$noradsettings->{'NoradIssImage'} = $result;}
+            elsif ($setting =~ /NoradIssText/) {$noradsettings->{'NoradIssText'} = $result;}
+            elsif ($setting =~ /NoradIssDetail/) {$noradsettings->{'NoradIssDetail'} = $result;}
+            elsif ($setting =~ /NoradIssOnOff/) {$noradsettings->{'NoradIssOnOff'} = $result;}
+            elsif ($setting =~ /NoradHstImage/) {$noradsettings->{'NoradHstImage'} = $result;}
+            elsif ($setting =~ /NoradHstText/) {$noradsettings->{'NoradHstText'} = $result;}
+            elsif ($setting =~ /NoradHstDetail/) {$noradsettings->{'NoradHstDetail'} = $result;}
+            elsif ($setting =~ /NoradHstOnOff/) {$noradsettings->{'NoradHstOnOff'} = $result;}
+            elsif ($setting =~ /NoradSoyuzImage/) {$noradsettings->{'NoradSoyuzImage'} = $result;}
+            elsif ($setting =~ /NoradSoyuzText/) {$noradsettings->{'NoradSoyuzText'} = $result;}
+            elsif ($setting =~ /NoradSoyuzDetail/) {$noradsettings->{'NoradSoyuzDetail'} = $result;}
+            elsif ($setting =~ /NoradSoyuzOnOff/) {$noradsettings->{'NoradSoyuzOnOff'} = $result;}
+            elsif ($setting =~ /NoradStsImage/) {$noradsettings->{'NoradStsImage'} = $result;}
+            elsif ($setting =~ /NoradStsText/) {$noradsettings->{'NoradStsText'} = $result;}
+            elsif ($setting =~ /NoradStsDetail/) {$noradsettings->{'NoradStsDetail'} = $result;}
+            elsif ($setting =~ /NoradStsOnOff/) {$noradsettings->{'NoradStsOnOff'} = $result;}
+            elsif ($setting =~ /NoradSatImage/) {$noradsettings->{'NoradSatImage'} = $result;}
+            elsif ($setting =~ /NoradSatText/) {$noradsettings->{'NoradSatText'} = $result;}
+            elsif ($setting =~ /NoradSatDetail/) {$noradsettings->{'NoradSatDetail'} = $result;}
+            elsif ($setting =~ /NoradSatOnOff/) {$noradsettings->{'NoradSatOnOff'} = $result;}
+            elsif ($setting =~ /NoradTleNumbers/) {$noradsettings->{'NoradTleNumbers'} = $result;}
+            elsif ($setting =~ /NoradMiscOnOff/) {$noradsettings->{'NoradMiscOnOff'} = $result;}
+            elsif ($setting =~ /NoradMiscDetail/) {$noradsettings->{'NoradMiscDetail'} = $result;}
+            elsif ($setting =~ /NoradFileName/) {$noradsettings->{'NoradFileName'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Label/) {
+            if ($setting =~ /LabelWarningQuake/) {$labelsettings->{'LabelWarningQuake'} = $result;}
+            elsif ($setting =~ /LabelWarningVolcano/) {$labelsettings->{'LabelWarningVolcano'} = $result;}
+            elsif ($setting =~ /LabelWarningStorm/) {$labelsettings->{'LabelWarningStorm'} = $result;}
+            elsif ($setting =~ /LabelWarningNorad/) {$labelsettings->{'LabelWarningNorad'} = $result;}
+            elsif ($setting =~ /LabelWarningCloud/) {$labelsettings->{'LabelWarningCloud'} = $result;}
+            elsif ($setting =~ /LabelColorOk/) {$labelsettings->{'LabelColorOk'} = $result;}
+            elsif ($setting =~ /LabelColorWarn/) {$labelsettings->{'LabelColorWarn'} = $result;}
+            elsif ($setting =~ /LabelColorError/) {$labelsettings->{'LabelColorError'} = $result;}
+            elsif ($setting =~ /LabelOnOff/) {$labelsettings->{'LabelOnOff'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Easter/) {
+            if ($setting =~ /EasterEggSurprises/) {$settings->{'EasterEggSurprises'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Misc/) {
+            if ($setting =~ /MiscXplanetVersion1OrBetter/) {$settings->{'XplanetVersion'} = $result;}
+        }
+            
+        elsif ($setting =~ /^Cloud/) {
+            if ($setting =~ /CloudRemoteImageName/) {$cloudsettings->{'CloudRemoteImageName'} = $result;}
+            elsif ($setting =~ /CloudLocalImageName/) {$cloudsettings->{'CloudLocalImageName'} = $result;}
+            elsif ($setting =~ /UseFreeCloudImage/) {$cloudsettings->{'UseFreeCloudImage'} = $result;}
+            elsif ($setting =~ /SubcribedToXplanetClouds/) {$cloudsettings->{'SubcribedToXplanetClouds'} = $result;}
+            elsif ($setting =~ /CloudUsername/) {$cloudsettings->{'Username'} = $result;}
+            elsif ($setting =~ /CloudPassword/) {$cloudsettings->{'Password'} = $result;}
+            elsif ($setting =~ /DirectDownload/) {$cloudsettings->{'DirectDownload'} = $result;}
+        }
+    }
+    
+    close MF;
+}
+print "Globals.pm, line 312... $eclipse_data_file = ", $eclipse_data_file, "\n";
+1; # End of the module

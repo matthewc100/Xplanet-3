@@ -4,42 +4,59 @@ use warnings;
 use Exporter 'import';
 use LWP::UserAgent;
 use HTTP::Request::Common;
+
 use Globals qw(
-$quakesettings 
-$settings 
-$quake_marker_file 
-@quakedata 
-$quake_location 
-$quake_location_CSV_24H_SIG 
-$quake_location_CSV_24H_45 
-$quake_location_CSV_24H_25 
-$quake_location_CSV_24H_10 
-$quake_location_CSV_24H_ALL 
-
-$quake_location_CSV_7D_SIG 
-$quake_location_CSV_7D_45 
-$quake_location_CSV_7D_25 
-$quake_location_CSV_7D_10 
-$quake_location_CSV_7D_ALL 
-
-$quake_location_CSV_30D_SIG 
-$quake_location_CSV_30D_45 
-$quake_location_CSV_30D_25 
-$quake_location_CSV_30D_10 
-$quake_location_CSV_30D_ALL); # Import global variables
+    $quakesettings 
+    $settings 
+    $quake_marker_file 
+    @quakedata 
+    ); 
 
 use constant FAILED => -1;
 
 our @EXPORT_OK = qw(
-    drawcircle 
-    max_model 
-    max_min_model 
-    standard_model 
-    colourisetext 
-    colourisemag 
     WriteoutQuake 
-    get_Correct_quake_Feed 
-    get_quakedata);
+    get_quakedata
+    );
+
+## EARTHQUAKE SITES
+my $quake_location = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+
+my $quake_location_CSV_24H_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.csv";
+my $quake_location_CSV_24H_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.csv";
+my $quake_location_CSV_24H_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.csv";
+my $quake_location_CSV_24H_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.csv";
+my $quake_location_CSV_24H_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv";
+
+my $quake_location_CSV_7D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.csv";
+my $quake_location_CSV_7D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.csv";
+my $quake_location_CSV_7D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.csv";
+my $quake_location_CSV_7D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.csv";
+my $quake_location_CSV_7D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
+
+my $quake_location_CSV_30D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.csv";
+my $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv";
+my $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
+my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
+my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
+
+my $quakesettings = {
+    'QuakePixelMax' => 10,
+    'QuakePixelMin' => 2,
+    'QuakePixelFactor' => 1.5,
+    'QuakeDetailColor' => 'Multi',
+    'QuakeDetailColorMin' => 'Blue',
+    'QuakeDetailColorInt' => 'Yellow',
+    'QuakeDetailColorMax' => 'Red',
+    'QuakeCircleColor' => 'Multi',
+    'QuakeMinimumSize' => 5,
+    'QuakeImageList' => '',
+    'QuakeImageTransparent' => 1,
+    'QuakeDetailList' => '<date> <time> <lat> <long> <depth> <mag> <quality> <location>',
+    'QuakeDetailAlign' => 'center',
+    'QuakeReportingDuration' => 'day',
+    'QuakeReportingSize' => 'significant',
+};
 
 # Subroutine to draw a circle based on magnitude
 sub drawcircle {
@@ -156,23 +173,25 @@ sub colourisemag {
 
 # Subroutine to write out quake data to a marker file
 sub WriteoutQuake {
-    my ($drawcircles) = @_;
+    my ($drawcircles, @quakedata) = @_;
 
     # Trim any leading/trailing spaces from the file path
     $quake_marker_file =~ s/^\s+|\s+$//g;
-    
- # Debugging output
-    print "Attempting to open file: $quake_marker_file\n";
+
+    # Debugging output
+    print "Debug: Writing to $quake_marker_file\n";
 
     open(my $qmf, ">", $quake_marker_file) or die "Cannot open $quake_marker_file: $!";
 
     foreach my $quake (@quakedata) {
         my @quakearray = split /,/, $quake;
+        print "Debug: Processing quake entry: ", join(", ", @quakearray), "\n";
+
         my $mag = $quakearray[4];
 
+        # Assuming colourisemag and drawcircle functions are working correctly
         my $circlecolour = colourisemag($mag);
         my $circlepixel = drawcircle($mag);
-
         my $textcolour = colourisetext($mag);
 
         print $qmf <<~"END";
@@ -184,8 +203,10 @@ sub WriteoutQuake {
         }
     }
 
-    close($qmf);
+    close($qmf) or die "Cannot close $quake_marker_file: $!";
+    print "Debug: Finished writing to $quake_marker_file\n";
 }
+
 
 # Subroutine to get quake feed based on reporting duration and size
 sub get_Correct_quake_Feed {
@@ -230,8 +251,6 @@ sub get_Correct_quake_Feed {
             $quakelocation = $quake_location_CSV_30D_ALL;
         }
     }
-
-    Globals::set_quake_location($quakelocation);  # Explicitly call the subroutine from Globals
 }
 
 # Subroutine to get quake data from the quake feed
@@ -256,8 +275,12 @@ sub get_quakedata {
             }
             push @quakedata, $line;
         }
+        # Debugging - use join to print each quake data on a new line
+        #print "Quake Data:\n", join("\n", @quakedata), "\n";
+        # After retrieving quake data, call WriteoutQuake and pass the data
+        WriteoutQuake(1, @quakedata);  # Assuming you want to draw circles, pass @quakedata here
 
-        Globals::set_quakedata(@quakedata);  # Explicitly call the subroutine from Globals
+
     } else {
         print "Failed to retrieve quake data: ", $res->status_line, "\n";
         return FAILED;

@@ -32,82 +32,77 @@ use Cwd;
 # Adjust this path to where the module files are located
 use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scripts';  
 
+use Exporter 'import';
+#our @EXPORT_OK = qw(get_file);
 
-# use Hurricane;
-# use Label;
+use Hurricane;
+use Label;
 use CloudUpdate qw(
     cloud_update
     );
-#use Norad qw(
-#    get_noraddata 
-#    norad_checked 
-#    update_file
-#    );#
+
+use Norad qw(
+    get_noraddata 
+    );#
 
 use Earthquake qw(
-    drawcircle 
-    max_model 
-    max_min_model 
-    standard_model 
-    colourisetext 
-    colourisemag 
     WriteoutQuake 
-    get_Correct_quake_Feed 
     get_quakedata
     );
-#use Volcano qw(
-#    WriteoutVolcano
-#    get_volcanodata
-#    );
-#use Eclipse qw(
-#    readineclipseindex
-#    readineclipsetrack
-#    datacurrent
-#    writeouteclipsemarker
-#    writeouteclipsearcboarder
-#    writeouteclipsearccenter
-#    writeouteclipsefilesnone
-#    writeouteclipselabel
-#    refinedata
-#    );
-#use EasterEgg qw(easteregg
-#    ); 
-use Globals qw(
-    $quakesettings 
-    $settings
 
-    $quake_marker_file 
-    @quakedata 
-    $quake_location 
-    set_quake_marker_file 
-    set_quakedata 
-    set_quake_location 
-
-    $noradsettings
-    set_quake_marker_file
-    $xplanet_images_dir
+use VolcanoXML qw(
+    process_volcano_data
     );
 
-# use Globals qw(
-#    $quakesettings 
-#     
+use Eclipse qw(
+    readineclipseindex
+    readineclipsetrack
+    datacurrent
+    writeouteclipsemarker
+    writeouteclipsearcboarder
+    writeouteclipsearccenter
+    writeouteclipsefilesnone
+    writeouteclipselabel
+    refinedata
+    );
 
+use EasterEgg qw(easteregg
+    ); 
 
-#     
-#    $isstle_file 
-#    $iss_file 
-#    $xplanet_satellites_dir 
-#    $iss_location 
-#    $hst_location 
-#    $sts_location 
-#    $other_locations1 
-#    $xplanet_images_dir
+use Globals qw(
+    $settings
+    $xplanet_dir
+    $settings_ini_file
+    $xplanet_markers_dir
+    $xplanet_arcs_dir
+    $xplanet_satellites_dir
+    $xplanet_images_dir
+    $xplanet_config_dir
 
-#    set_pversion#
+    set_pversion
+    update_directories
 
-#    $volcano_marker_file
-#    $volcano_location
-#    );
+    $quakesettings 
+    $quake_marker_file 
+    @quakedata 
+
+    $labelsettings
+
+    $noradsettings
+
+    $volcanosettings 
+    $volcano_marker_file
+   
+    $stormsettings 
+ 
+    $cloudsettings 
+
+    $eclipse_data_file
+    $eclipse_marker_file
+    $eclipse_arc_file
+
+    $xplanet_images_dir
+    );
 
 #perl2exe_include "Bzip2.pm";
 #perl2exe_include "FileSpec.pm";
@@ -157,13 +152,12 @@ use Globals qw(
 #   common name (perl or perl.exe). This can be a useful way to ensure consistency in how the script identifies itself, 
 #   especially in environments where multiple Perl interpreters are used.
 BEGIN {
-    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  Hurricane::get_hurricane_data_count  WriteoutVolcano  get_volcanodata  
+    # CollapsedSubs: get_webpage  get_program_version  changelog_print  file_header  Hurricane::get_hurricane_data_count  
+    # Volcano::get_volcanodata Volcano::WriteoutVolcano  
     # update_file  get_eclipsedata  readineclipseindex  readineclipsetrack  datacurrent  writeouteclipsemarker  writeouteclipsearcboarder  
-    #writeouteclipsearccenter  writeouteclipsefilesnone  writeouteclipselabel  refinedata  get_settings  easteregg
+    # writeouteclipsearccenter  writeouteclipsefilesnone  writeouteclipselabel  refinedata  get_settings  easteregg
     $0 = $^X unless ($^X =~ m%(^|[/\\])(perl)|(perl.exe)$%i );
 }
-
-#use Mozilla::CA;
 
 our $VERSION="2.6.1";
 our $Client = "Client Edition";
@@ -186,137 +180,20 @@ my $update_cloud = 0;        # Set to the appropriate value
 my $update_hurricane = 0;    # Set to the appropriate value
 my $update_volcano = 0;      # Set to the appropriate value
 my $update_label = 0;        # Set to the appropriate value
-#
-# Orgininal Location of the downloads
-#
-my $quake_location = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
-my $storm_base_location = "https://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file";
-my $storm_past_location = "https://www.nrlmry.navy.mil/archdat/test/kml/TC/";
-my $storm_future_location = "https://www.nrlmry.navy.mil/atcf_web/docs/current_storms/";
-my $iss_location = "https://www.celestrak.com/NORAD/elements/stations.txt";
-my $other_locations1 = "https://www.celestrak.com/NORAD/elements/science.txt";
-my $hst_location = "https://www.celestrak.com/NORAD/elements/tdrss.txt";
-my $sts_location = "https://www.celestrak.com/NORAD/elements/sts.txt";
-my $sts_dates = "https://www.seds.org/~spider/shuttle/shu-sche.html";
-my $backup_sat_location= "https://www.idb.com.au/joomla/index.php";
-#my $volcano_location = "https://www.volcano.si.edu/bgvn.cfm";
-#my $volcano_location = "https://www.volcano.si.edu/news/WeeklyVolcanoCAP.xml";
-my $volcano_location = "https://volcano.si.edu/news/WeeklyVolcanoCAP.xml";
-my $eclipse_location = "https://sunearth.gsfc.nasa.gov/eclipse/SEpath/";
-my $refined_eclipse_data = "https://www.wizabit.eclipse.co.uk/xplanet/files/local/update.data";
-#my $cloud_image_base = "https://xplanetclouds.com/free/coral/";
-my $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
+my $quake_on_off;
+my $volcano_on_off;
+my $norad_on_off;
+my $clouds_on_off;
+my $hurricane_on_off;
+my $xplanetversion;
 
-# Example usage of CloudUpdate module
-my $cloud_image_url = "http://secure.xericdesign.com/xplanet/clouds/8192/clouds-8192.jpg";
-# my $cloud_username = "XP100-EFD5M-SEW3F-GW3PV";
-# my $cloud_password = "v5mmVrDRgTJ5";
-my $cloud_file_name = "clouds-8192.jpeg";
+our $xplanet_dir = $ENV{'XPLANET_DIR'} || "C:\\Users\\mcoblent\\onedrive\\xplanet\\xplanet-1.3.0\\xplanet-3";
 
-my $volcano_location_RSS_24H = "https://earthquake.usgs.gov/eqcenter/recenteqsww/catalogs/caprss1days2.5.xml";
+# Set the value of $xplanet_dir in Globals
+Globals::set_xplanet_dir($xplanet_dir);
 
-
-# my $quake_location_CSV_24H_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.csv";
-# my $quake_location_CSV_24H_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.csv";
-# my $quake_location_CSV_24H_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.csv";
-# my $quake_location_CSV_24H_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.csv";
-# my $quake_location_CSV_24H_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.csv";
-
-# my $quake_location_CSV_7D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.csv";
-# my $quake_location_CSV_7D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.csv";
-# my $quake_location_CSV_7D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.csv";
-# my $quake_location_CSV_7D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_week.csv";
-# my $quake_location_CSV_7D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.csv";
-
-# my $quake_location_CSV_30D_SIG = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.csv";
-# my $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.csv";
-# my $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
-# my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
-# my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
-
-my $ua = LWP::UserAgent->new();
-$ua->env_proxy();
-$ua->agent("Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 9.1)");
-
-# Please note if you are using Windows and Active Perl you must \\ your directories not just use \
-# where xplanet is installed
-#
-# Directory Layout
-#
-my $ENV;
-# my $xplanet_dir = $ENV{'XPLANET_DIR'} || "/usr/X11R6/share/xplanet";
-my $xplanet_dir = $ENV{'XPLANET_DIR'} || "C:\\Users\\mcoblent\\onedrive\\xplanet\\xplanet-1.3.0\\xplanet-3";
-
-# where the xplanet marker files are
-my $xplanet_markers_dir = $ENV{'XPLANET_MARKERS_DIR'} || "$xplanet_dir\\markers";
-
-# where the xplanet greatarc files are
-my $xplanet_arcs_dir = $ENV{'XPLANET_ARC_DIR'} || "$xplanet_dir\\arcs";
-
-# where the satellites info files are
-my $xplanet_satellites_dir = $ENV{'XPLANET_SATELLITES_DIR'} || "$xplanet_dir\\satellites";
-
-# where the image files are
-my $xplanet_images_dir = $ENV{'XPLANET_IMAGE_DIR'} || "$xplanet_dir\\images";
-
-# where the config files are
-my $xplanet_config_dir = $ENV{'XPLANET_CONFIG_DIR'} || "$xplanet_dir\\config";
-
-#
-# File Locations
-#
-# where the quake marker will be written to
-my $quake_marker_file = " $xplanet_markers_dir\\quake";
-
-# add $quake_marker_file to the Globals module
-# Set the value of $quake_marker_file using the setter function
-set_quake_marker_file($quake_marker_file);
-
-# where the volcano marker will be written to
-my $volcano_marker_file = " $xplanet_markers_dir\\volcano";
-
-# where the hurricane marker will be written to
-my $hurricane_marker_file = " $xplanet_markers_dir\\storm";
-
-# where the hurricane tracking will be written to
-my $hurricane_arc_file = " $xplanet_arcs_dir\\storm";
-
-# where the iss file will be written to
-my $iss_file = "$xplanet_satellites_dir\\tm";
-
-#where the iss.tle will be written to
-my $isstle_file = "$xplanet_satellites_dir\\tm.tle";
-
-#where the iss.tle will be written to
-my $label_file = "$xplanet_markers_dir\\updatelabel";
-
-#where the eclipse marker file will be written to
-my $eclipse_marker_file = "$xplanet_markers_dir\\eclipse";
-
-#where the eclipse arc file will be written to
-my $eclipse_arc_file = "$xplanet_arcs_dir\\eclipse";
-
-#where the eclipse data file will be written to
-my $eclipse_data_file = "$xplanet_config_dir\\totalmarker.dat";
-
-#where the settings are stored
-my $settings_ini_file = "$xplanet_config_dir\\totalmarker.ini";
-
-#where the old settings were stored
-my $settings_old_ini_file = "$xplanet_dir\\totalmarker.ini";
-
-#where the old dat files was stored
-my $eclipse_old_data_file = "$xplanet_dir\\totalmarker.dat";
-
-#where cloud batch file is
-my $cloudbatch = "$xplanet_dir\\updateclouds.bat";
-
-#Where WinXplanetbg stores its settings
-my $winXPlanetBG = "$xplanet_dir\\winXPlanetBG.ini";
-
-#Where the backup is stored
-my $winxplanetbgbackup = "xplanet_config_dir\\winXPlanetBG.ini";
-
+# Call the subroutine to initialize directory and file paths
+Globals::get_ini_settings();
 #
 # Test that locations exist and can be written to.
 #
@@ -342,19 +219,47 @@ my $winxplanetbgbackup = "xplanet_config_dir\\winXPlanetBG.ini";
 -r $xplanet_images_dir || die("Could not read xplanet from images directory $xplanet_images_dir\n");
 -w $xplanet_images_dir || die("Could not write xplanet to images directory $xplanet_images_dir\n");
 
+
+my $volcano_location_RSS_24H = "https://earthquake.usgs.gov/eqcenter/recenteqsww/catalogs/caprss1days2.5.xml";
+
+my $ua = LWP::UserAgent->new();
+$ua->env_proxy();
+$ua->agent("Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 9.1)");
+
+# Please note if you are using Windows and Active Perl you must \\ your directories not just use \
+# where xplanet is installed
+#
+# where the label marker file will be written to
+# Main Script: Sets $label_file and passes it to Globals.pm using set_label_file($label_file);.
+# Globals.pm: Receives the value of $label_file and stores it as a global variable.
+# Label.pm: Uses $label_file as expected, with the value set in the main script.
+# Summary
+#   Global Declaration: Declare $label_file using our in the main script.
+#   Setter Function: Use a setter function in Globals.pm to pass the value of $label_file.
+#   Call the Setter: After setting $label_file in the main script, call the setter to pass its value to Globals.pm.
+
+#where the old settings were stored
+my $settings_old_ini_file = "$xplanet_dir\\totalmarker.ini";
+
+#where the old dat files was stored
+my $eclipse_old_data_file = "$xplanet_dir\\totalmarker.dat";
+
+#where cloud batch file is
+my $cloudbatch = "$xplanet_dir\\updateclouds.bat";
+
+#Where WinXplanetbg stores its settings
+my $winXPlanetBG = "$xplanet_dir\\winXPlanetBG.ini";
+
+#Where the backup is stored
+my $winxplanetbgbackup = "xplanet_config_dir\\winXPlanetBG.ini";
+
 #
 # Allows simple update to Totalmarker should regex & location change.
 #
 my $readfile="totalmarker.upd";
-if ( (-e $readfile) && (-r $readfile) ) {
-    &get_xml_update;
-}
-
-# I think this should be removed.  Test first.  
-# Example usage of Earthquake module
-# Earthquake::get_Correct_quake_Feed($quakesettings);
-# my $counter = Earthquake::get_quakedata($quakesettings);
-# Earthquake::WriteoutQuake($counter, $quakesettings);
+#if ( (-e $readfile) && (-r $readfile) ) {
+#    &get_xml_update;
+#}
 
 ###############################
 # Reset this section to the following section when using Hurricane.pm
@@ -375,21 +280,28 @@ if ( (-e $readfile) && (-r $readfile) ) {
 # Label update code
 # Label::WriteoutLabel($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label);
 
-sub get_webpage($) {
-    my ($URL)=@_;
+sub get_webpage {
+    my ($URL) = @_;
     my $req = HTTP::Request->new(GET => $URL);
     my $res = $ua->request($req);
     
-    return $res->content || return 'FAILED';
+    # Check if the request was successful
+    if ($res->is_success) {
+        return $res->decoded_content;  # Use decoded_content for proper encoding
+    } else {
+        # Log the error with a detailed message
+        warn "Failed to fetch $URL: " . $res->status_line;
+        return undef;  # Explicitly return undef on failure
+    }
 }
 
 sub command_line {
-    my $quake_on_off = 0;
-    my $update_label = 0;
-    my $volcano_on_off = 0;
-    my $norad_on_off = 0;
-    my $clouds_on_off = 0;
-    my $hurricane_on_off = 0;
+    $quake_on_off = 0;
+    $update_label = 0;
+    $volcano_on_off = 0;
+    $norad_on_off = 0;
+    $clouds_on_off = 0;
+    $hurricane_on_off = 0;
 
     while (@ARGV) {
         my $result = shift @ARGV;
@@ -410,7 +322,7 @@ sub command_line {
         } elsif ($result eq "-Hurricane" || $result eq "-Storm" || $result eq "-hurricane" || $result eq "-storm") { 
             $hurricane_on_off = 1; 
         } elsif ($result eq "-version" || $result eq "-Version") { 
-            my $xplanetversion = &get_program_version;
+            $xplanetversion = &get_program_version;
             print "$Script $Client $VERSION\nXplanet Version $xplanetversion\nMichael Dear    10th Feb 2004\nhttp://www.wizabit.eclipse.co.uk/xplanet\n";
             exit 1;
         } elsif ($result eq "-update" || $result eq "-Update") { 
@@ -457,6 +369,7 @@ sub get_program_version {
     }
     return "Unknown version";  # Default return value if "Xplanet" is not found
 }
+
 
 sub changelog_print () {
     my $oldversion = @_;
@@ -600,85 +513,12 @@ EOM
     exit 1;
 }
 
+
 # Return codes of 200 to 299 are "success" in HTTP-speak
 sub IndicatesSuccess () {
     my $Response = shift();
     if ($Response =~ /2\d\d/)   {return(1);}
     else                        {return(0);}
-}
-
-# Returns the name of an internet resource which can provide the clouds image
-sub GetRandomMirror() {
-    # Populate a list of mirrors
-    my @Mirrors;
-    if (my $cloudsettings->{'CloudMirrorA'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorA'}";}
-    if (my $cloudsettings->{'CloudMirrorB'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorB'}";}
-    if (my $cloudsettings->{'CloudMirrorC'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorC'}";}
-    if (my $cloudsettings->{'CloudMirrorD'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorD'}";}
-    if (my $cloudsettings->{'CloudMirrorE'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorE'}";}
-    if (my $cloudsettings->{'CloudMirrorF'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorF'}";}
-    if (my $cloudsettings->{'CloudMirrorG'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorG'}";}
-    if (my $cloudsettings->{'CloudMirrorH'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorH'}";}
-    if (my $cloudsettings->{'CloudMirrorI'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorI'}";}
-    if (my $cloudsettings->{'CloudMirrorJ'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorJ'}";}
-    if (my $cloudsettings->{'CloudMirrorK'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorK'}";}
-    if (my $cloudsettings->{'CloudMirrorL'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorL'}";}
-    if (my $cloudsettings->{'CloudMirrorM'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorM'}";}
-    if (my $cloudsettings->{'CloudMirrorN'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorN'}";}
-    
-    # Return one at random
-    return $Mirrors[rand scalar(@Mirrors)];
-}
-
-# $browser->credentials(
-#     #http://www.xplanetclouds.com/clouds/4096/clouds_clouds_4096.jpg
-#     #http://www.xplanetclouds.com/clouds/4096/clouds_clouds_2048.jpg
-#     '$site:80',
-#     'www.xplanetclouds.com',
-#     'maxsendq' => 'wh0tugot'
-# );
-
-# sub get_store () {
-#     my ($file)=@_;
-#     my $gif_URL="http://www.wizabit.eclipse.co.uk/xplanet/files/local/images/$file";
-#     my ($name,$ext) = split '\.',$file,2;
-#     my $outfile= "$xplanet_images_dir/$file";
-#
-#     $content = get_webpage($gif_URL );
-#     if ($content eq undef) {}
-#     else {
-#         open(IMAGE,">$outfile")
-#         binmode IMAGE;
-#         print IMAGE $content;
-#         close (IMAGE);
-#     }
-# }
-
-#sub file_header($) {
-#    my ($openfile) = @_;
-#    print MF "# This $openfile marker file created by $Script - $Client version $VERSION\n";
-#    print MF "# For more information read the top of the $Script file or go to\n";
-#    print MF "# http://www.wizabit.eclipse.co.uk/xplanet\n";
-#    my $tsn = localtime(time);
-#    print MF "# Last Updated: $tsn\n#\n";
-#}
-
-
-sub get_file() {
-    my ($file)=@_;
-    my $gif_URL="http://www.wizabit.eclipse.co.uk/xplanet/files/local/images/$file";
-    my ($name,$ext) = split '\.',$file,2;
-    my $outfile= "$xplanet_images_dir/$file";
-    
-    my $content = get_webpage($gif_URL );
-    
-    if ($content eq undef) {}
-    else {
-        open(IMAGE,">$outfile");
-        binmode IMAGE;
-        print IMAGE $content;
-        close (IMAGE);
-    }
 }
 
 
@@ -708,21 +548,6 @@ sub make_directory() {
     return 1;
 }
 
-#sub num_of_month($) {
-#    my ($text_month) = @_;
-#    if ($text_month =~ /Jan/)   {return 0;}
-#    if ($text_month =~ /Feb/)   {return 1;}
-#    if ($text_month =~ /March/) {return 2;}
-#    if ($text_month =~ /April/) {return 3;}
-#    if ($text_month =~ /May/)   {return 4;}
-#    if ($text_month =~ /June/)  {return 5;}
-#    if ($text_month =~ /July/)  {return 6;}
-#    if ($text_month =~ /Aug/)   {return 7;}
-#    if ($text_month =~ /Sept/)  {return 8;}
-#    if ($text_month =~ /Oct/)   {return 9;}
-#    if ($text_month =~ /Nov/)   {return 10;}
-#    if ($text_month =~ /Dec/)   {return 11;}
-#}
 
 sub boundschecking() {
     my ($value) = @_;
@@ -731,98 +556,6 @@ sub boundschecking() {
     # if ($value == 0) {$value = FAILED;}
     
     return ($value);
-}
-
-
-#my $storm_base_location = "http://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file";
-#my $storm_past_location = "http://www.nrlmry.navy.mil/archdat/test/kml/TC/2011/ATL/12L/trackfile.txt";
-#my $storm_future_location = "http://www.nrlmry.navy.mil/atcf_web/docs/current_storms/al122011.tcw";
-
-sub get_hurricane_data_count {
-    my $hurricane_counter = 0;
-    my $hurricanetxt;
-    my $sign;
-    my $year;
-    my $type;
-    my $ocean;
-    my $file;
-    my $hurricanetotallist;
-    my @hurricanearcdataact;
-    my @hurricanearcdatafor;
-    my @hurricanedata;
-    
-    $hurricanetotallist = get_webpage($storm_base_location);
-    
-    if ($hurricanetxt !~ /FAILED/) {
-        foreach (split("\n",$hurricanetotallist)) {
-            if (/([\d\w]+)\s(\w+)\s(\d+)\s(\d+)\s+([\d\-\.NS]+)\s+([\d\-\.EW]+)\s(\w+)\s+(\d+)\s+(\d+)/) {
-                my($code,$name,$date,$time,$lat,$long,$location,$speed,$detail)=($1,$2,$3,$4,$5,$6,$7,$8,$9);
-                if ($lat =~ /(\d+\.\d+)([NS])/) {
-                    ($lat,$sign)=($1,$2);
-                    $lat *= -1 if $sign =~ /s/i;
-                }
-                $lat *= 1;
-                
-                if ($long =~ /(\d+\.\d+)([WE])/) {
-                    ($long,$sign)=($1,$2);
-                    $long *= -1 if $sign =~ /w/i;
-                }
-                $long *= 1;
-                $speed =~ s/^0+//;
-                
-                if ($name =~ /INVEST/) {
-                    $type = "DEP";
-                    $name = $code;
-                }
-                else {
-                    $type = "STO";
-                }
-                
-                $year = "20".substr $date,0,2;
-                
-                if ($location =~ /ATL/) {
-                    $ocean = "al";
-                }
-                elsif ($location =~ /WPAC/) {
-                    $ocean = "wp";
-                }
-                elsif ($location =~ /EPAC/) {
-                    $ocean = "ep";
-                }
-                elsif ($location =~ /CPAC/) {
-                    $ocean = "cp";
-                }
-                
-                push @hurricanedata, {
-                    'type'  => $type,
-                    'file'  => $file,
-                    'name'  => $name,
-                    'lat'   => $lat,
-                    'long'  => $long,
-                    'speed' => $speed,
-                    'code'  => $code,
-                    'year'  => $year,
-                    'ocean' => $ocean,
-                    'loc'   => $location,
-                };
-            }
-            
-            $hurricane_counter++;
-        }
-        
-        if ($hurricane_counter == 0) {
-            print "  ERROR (-1)?... Unable to parse storm information\n";
-            return -1;
-        }
-        else {
-            print "  Updated storm information\n";
-            return $hurricane_counter;
-        }
-    }
-    else {
-        print "  WARNING... unable to access or download updated storm information\n";
-        return $hurricanetxt;
-    }
 }
 
 
@@ -968,26 +701,26 @@ sub install() {
     }
     elsif ($flag =~ /quake/) {
         my $xplanetversion = &get_program_version();
-    
-        if ($xplanetversion =~ /(\d.\d\d)(\w)/) {
-            my ($pversion, $prevision) = ($1, $2);
         
+        if ($xplanetversion =~ /(\d.\d\d)(\w)/) {
+            my ($pversion,$prevision) = ($1,$2);
+            
             $pversion *= 1;
             if ($pversion < 0.93) {
-             print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
+                print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
             }
-            elsif ($pversion == 0.93) {
+            elsif ($pversion = 0.93) {
                 if (ord($prevision) < ord('d')) {
                     print "The Version of Xplanet won't support Earthquakes, please Upgrade to 0.93d or better\n";
                 }
             }
-            elsif ($pversion < 0.95) {
-                &install_marker($oldversionnumber, $flag);
+            elsif ($pversion < 0.95 ) {
+                &install_marker($oldversionnumber,$flag);
             }
             else {
-                &install_marker($newversionnumber, $flag);
+                &install_marker($newversionnumber,$flag);
             }
-        
+            
             print "Earthquakes\nXplanet Version = $pversion, Revision = $prevision:\n";
         }
     }
@@ -1082,16 +815,20 @@ sub install() {
             &update_ini_file;
         }
         else {
-    open (MF, "<$settings_ini_file") or die "Could not open file '$settings_ini_file' $!";
-    while (<MF>) {
-        foreach (split "\n") {
-            if ($_ =~ /Config File Written by/) {
-                my ($tmp1, $tmp2, $tmp3, $tmp4, $tmp5, $tmp6, $tmp7) = split " ";
-                $oldversion = $tmp7;
+            open (MF, "<$settings_ini_file");
+            while (<MF>) {
+                foreach (split "\n") {
+                    if ($_ =~ /Config File Written by/) {
+                        my ($tmp1, $tmp2, $tmp3, $tmp4, $tmp5, $tmp6, $tmp7) = split " ";
+                        
+                        $oldversion = $tmp7;
+                    }
+                }
+                
+                close MF;
+                &changelog_print ($oldversion);
             }
         }
-    }
-    close(MF);
     }
     
     my $installed = 1;
@@ -1104,7 +841,7 @@ sub update_ini_file() {
     my $cloudsettings;
     my @volcanodata;
 
-    &get_settings;
+    Globals::get_settings();
     print "\nUpgrading Totalmarker.ini File to Latest Version.\n";
     open (MF, ">$settings_ini_file");
     print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See http://www.wizabit.eclipse.co.uk/xplanet/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
@@ -1479,170 +1216,31 @@ sub update_ini_file() {
     print "Ini File updated to lastest version.\n";
 }
 
-
-
-sub get_settings () {
-    my $volcanosettings;
-    my $stormsettings;
-    my $labelsettings;
-    my $cloudsettings;
-    my $mon;
-    my $mday;
-
-    open (MF, "<$settings_ini_file");
-    while (<MF>) {
-        foreach (split "\n") {
-            my ($setting,$result) = split "=",$_,2;
-            s/([a-z])([A-Z])/$1:$2/g;
-            my ($data1,$tmp1) = split ":",$_,2;
-            #print "Setting = $setting, Result = $result, Data1 = $data1, Tmp1 = $tmp1\n";
-            
-            if ($data1 =~ /Quake/) {
-                if ($setting =~ /QuakeDetailColorMin/) {$quakesettings->{'QuakeDetailColorMin'} = $result;}
-                elsif ($setting =~ /QuakeDetailColorInt/) {$quakesettings->{'QuakeDetailColorInt'} = $result;}
-                elsif ($setting =~ /QuakeDetailColorMax/) {$quakesettings->{'QuakeDetailColorMax'} = $result;}
-                elsif ($setting =~ /QuakeDetailAlign/) {$quakesettings->{'QuakeDetailAlign'} = $result;}
-                elsif ($setting =~ /QuakeCircleColor/) {$quakesettings->{'QuakeCircleColor'} = $result;}
-                elsif ($setting =~ /QuakePixelMax/) {$quakesettings->{'QuakePixelMax'} = $result;}
-                elsif ($setting =~ /QuakePixelMin/) {$quakesettings->{'QuakePixelMin'} = $result;}
-                elsif ($setting =~ /QuakePixelFactor/) {$quakesettings->{'QuakePixelFactor'} = $result;}
-                elsif ($setting =~ /QuakeImageTransparent/) {$quakesettings->{'QuakeImageTransparent'} = $result;}
-                elsif ($setting =~ /QuakeImageList/) {$quakesettings->{'QuakeImageList'} = $result;}
-                elsif ($setting =~ /QuakeDetailColor/) {$quakesettings->{'QuakeDetailColor'} = $result;}
-                elsif ($setting =~ /QuakeDetailList/) {$quakesettings->{'QuakeDetailList'} = $result;}
-                elsif ($setting =~ /QuakeMinimumSize/) {$quakesettings->{'QuakeMinimumSize'} = $result;}
-                elsif ($setting =~ /QuakeReportingDuration/) {$quakesettings->{'QuakeReportingDuration'} = $result;}
-                elsif ($setting =~ /QuakeReportingSize/) {$quakesettings->{'QuakeReportingSize'} = $result;}
-                elsif ($setting =~ /QuakeFade/) {$quakesettings->{'QuakeFade'} = $result;}						
-            }
-            
-            if ($data1 =~ /Volcano/) {
-                if ($setting =~ /VolcanoCircleSizeInner/) {$volcanosettings->{'VolcanoCircleSizeInner'} = $result;}
-                elsif ($setting =~ /VolcanoCircleSizeMiddle/) {$volcanosettings->{'VolcanoCircleSizeMiddle'} = $result;}
-                elsif ($setting =~ /VolcanoCircleSizeOuter/) {$volcanosettings->{'VolcanoCircleSizeOuter'} = $result;}
-                elsif ($setting =~ /VolcanoCircleColorInner/) {$volcanosettings->{'VolcanoCircleColorInner'} = $result;}
-                elsif ($setting =~ /VolcanoCircleColorMiddle/) {$volcanosettings->{'VolcanoCircleColorMiddle'} = $result;}
-                elsif ($setting =~ /VolcanoCircleColorOuter/) {$volcanosettings->{'VolcanoCircleColorOuter'} = $result;}
-                elsif ($setting =~ /VolcanoNameOnOff/) {$volcanosettings->{'VolcanoNameOnOff'} = $result;}
-                elsif ($setting =~ /VolcanoNameColor/) {$volcanosettings->{'VolcanoNameColor'} = $result;}
-                elsif ($setting =~ /VolcanoNameAlign/) {$volcanosettings->{'VolcanoNameAlign'} = $result;}
-                elsif ($setting =~ /VolcanoImageTransparent/) {$volcanosettings->{'VolcanoImageTransparent'} = $result;}
-                elsif ($setting =~ /VolcanoImageList/) {$volcanosettings->{'VolcanoImageList'} = $result;}
-                elsif ($setting =~ /VolcanoDetailAlign/) {$volcanosettings->{'VolcanoDetailAlign'} = $result;}
-                elsif ($setting =~ /VolcanoDetailList/) {$volcanosettings->{'VolcanoDetailList'} = $result;}
-                elsif ($setting =~ /VolcanoDetailColor/) {$volcanosettings->{'VolcanoDetailColor'} = $result;}
-            }
-            
-            if ($data1 =~ /Storm/) {
-                if ($setting =~ /StormColorTrackReal/) {$stormsettings->{'StormColorTrackReal'} = $result;}
-                elsif ($setting =~ /StormColorTrackPrediction/) {$stormsettings->{'StormColorTrackPrediction'} = $result;}
-                elsif ($setting =~ /StormColorName/) {$stormsettings->{'StormColorName'} = $result;}
-                elsif ($setting =~ /StormColorDetail/) {$stormsettings->{'StormColorDetail'} = $result;}
-                elsif ($setting =~ /StormAlignName/) {$stormsettings->{'StormAlignName'} = $result;}
-                elsif ($setting =~ /StormAlignDetail/) {$stormsettings->{'StormAlignDetail'} = $result;}
-                elsif ($setting =~ /StormImageTransparent/) {$stormsettings->{'StormImageTransparent'} = $result;}
-                elsif ($setting =~ /StormImageList/) {$stormsettings->{'StormImageList'} = $result;}
-                elsif ($setting =~ /StormDetailAlign/) {$stormsettings->{'StormDetailAlign'} = $result;}
-                elsif ($setting =~ /StormDetailList/) {$stormsettings->{'StormDetailList'} = $result;}
-                elsif ($setting =~ /StormTrackOnOff/) {$stormsettings->{'StormTrackOnOff'} = $result;}
-                elsif ($setting =~ /StormNameOnOff/) {$stormsettings->{'StormNameOnOff'} = $result;}
-            }
-            
-            if ($data1 =~ /Eclipse/) {
-                if ($setting =~ /EclipseOnOff/) {$settings->{'EclipseOnOff'} = $result;}
-                elsif ($setting =~ /EclipseNotifyOnOff/) {$settings->{'EclipseNotifyOnOff'} = $result;}
-                elsif ($setting =~ /EclipseNotifyTimeHours/) {$settings->{'EclipseNotifyTimeHours'} = $result;}
-            }
-            
-            if ($data1 =~ /Norad/) {
-                if ($setting =~ /NoradIssImage/) {$noradsettings->{'NoradIssImage'} = $result;}
-                elsif ($setting =~ /NoradIssText/) {$noradsettings->{'NoradIssText'} = $result;}
-                elsif ($setting =~ /NoradIssDetail/) {$noradsettings->{'NoradIssDetail'} = $result;}
-                elsif ($setting =~ /NoradIssOnOff/) {$noradsettings->{'NoradIssOnOff'} = $result;}
-                elsif ($setting =~ /NoradHstImage/) {$noradsettings->{'NoradHstImage'} = $result;}
-                elsif ($setting =~ /NoradHstText/) {$noradsettings->{'NoradHstText'} = $result;}
-                elsif ($setting =~ /NoradHstDetail/) {$noradsettings->{'NoradHstDetail'} = $result;}
-                elsif ($setting =~ /NoradHstOnOff/) {$noradsettings->{'NoradHstOnOff'} = $result;}
-                elsif ($setting =~ /NoradSoyuzImage/) {$noradsettings->{'NoradSoyuzImage'} = $result;}
-                elsif ($setting =~ /NoradSoyuzText/) {$noradsettings->{'NoradSoyuzText'} = $result;}
-                elsif ($setting =~ /NoradSoyuzDetail/) {$noradsettings->{'NoradSoyuzDetail'} = $result;}
-                elsif ($setting =~ /NoradSoyuzOnOff/) {$noradsettings->{'NoradSoyuzOnOff'} = $result;}
-                elsif ($setting =~ /NoradStsImage/) {$noradsettings->{'NoradStsImage'} = $result;}
-                elsif ($setting =~ /NoradStsText/) {$noradsettings->{'NoradStsText'} = $result;}
-                elsif ($setting =~ /NoradStsDetail/) {$noradsettings->{'NoradStsDetail'} = $result;}
-                elsif ($setting =~ /NoradStsOnOff/) {$noradsettings->{'NoradStsOnOff'} = $result;}
-                elsif ($setting =~ /NoradSatImage/) {$noradsettings->{'NoradSatImage'} = $result;}
-                elsif ($setting =~ /NoradSatText/) {$noradsettings->{'NoradSatText'} = $result;}
-                elsif ($setting =~ /NoradSatDetail/) {$noradsettings->{'NoradSatDetail'} = $result;}
-                elsif ($setting =~ /NoradSatOnOff/) {$noradsettings->{'NoradSatOnOff'} = $result;}
-                elsif ($setting =~ /NoradTleNumbers/) {$noradsettings->{'NoradTleNumbers'} = $result;}
-                elsif ($setting =~ /NoradMiscOnOff/) {$noradsettings->{'NoradMiscOnOff'} = $result;}
-                elsif ($setting =~ /NoradMiscDetail/) {$noradsettings->{'NoradMiscDetail'} = $result;}
-                elsif ($setting =~ /NoradFileName/) {$noradsettings->{'NoradFileName'} = $result;}
-            }
-            
-            if ($data1 =~ /Label/) {
-                if ($setting =~ /LabelWarningQuake/) {$labelsettings->{'LabelWarningQuake'} = $result;}
-                elsif ($setting =~ /LabelWarningVolcano/) {$labelsettings->{'LabelWarningVolcano'} = $result;}
-                elsif ($setting =~ /LabelWarningStorm/) {$labelsettings->{'LabelWarningStorm'} = $result;}
-                elsif ($setting =~ /LabelWarningNorad/) {$labelsettings->{'LabelWarningNorad'} = $result;}
-                elsif ($setting =~ /LabelWarningCloud/) {$labelsettings->{'LabelWarningCloud'} = $result;}
-                elsif ($setting =~ /LabelColorOk/) {$labelsettings->{'LabelColorOk'} = $result;}
-                elsif ($setting =~ /LabelColorWarn/) {$labelsettings->{'LabelColorWarn'} = $result;}
-                elsif ($setting =~ /LabelColorError/) {$labelsettings->{'LabelColorError'} = $result;}
-                elsif ($setting =~ /LabelOnOff/) {$labelsettings->{'LabelOnOff'} = $result;}
-            }
-            
-            if ($data1 =~ /Easter/) {
-                if ($setting =~ /EasterEggSurprises/) {$settings->{'EasterEggSurprises'} = $result;}
-            }
-            
-            if ($data1 =~ /Misc/) {
-                if ($setting =~ /MiscXplanetVersion1OrBetter/) {$settings->{'XplanetVersion'} = $result;}
-            }
-            
-            if ($data1 =~ /Cloud/) {
-                if ($setting =~ /CloudRemoteImageName/) {$cloudsettings->{'CloudRemoteImageName'} = $result;}
-                elsif ($setting =~ /CloudLocalImageName/) {$cloudsettings->{'CloudLocalImageName'} = $result;}
-                elsif ($setting =~ /UseFreeCloudImage/) {$cloudsettings->{'UseFreeCloudImage'} = $result;}
-                elsif ($setting =~ /SubcribedToXplanetClouds/) {$cloudsettings->{'SubcribedToXplanetClouds'} = $result;}
-                elsif ($setting =~ /CloudUsername/) {$cloudsettings->{'Username'} = $result;}
-                elsif ($setting =~ /CloudPassword/) {$cloudsettings->{'Password'} = $result;}
-                elsif ($setting =~ /DirectDownload/) {$cloudsettings->{'DirectDownload'} = $result;}
-            }
-        }
-    }
-    
-    close MF;
-}
-
-
-my $hurricane_on_off = 0;
-my $volcano_on_off = 0;
-my $quake_on_off = 0;
-my $clouds_on_off = 0;
-my $norad_on_off = 0;
-my $update_label = 0;
+$hurricane_on_off = 0;
+$volcano_on_off = 0;
+$quake_on_off = 0;
+$clouds_on_off = 0;
+$norad_on_off = 0;
 my $hurricane_record_number = 0;
 my $volcano_record_number = 0;
 my $quake_record_number = 0;
 my $norad_record_number = 0;
 my $cloud_record_number = 0;
-my $eclipseoverride;
-my $labelsettings;
+my $eclipseoverride = 0;
+# my $labelsettings;
 my $label_on_off;
 my $eclipse_on_off;
 my $EasterEgg_on_off;
 my @eclipsetrack;
 my @eclipsedata;
 my @eclipserefined;
-my $installed;
-
+my $installed =1;
 
 &command_line();
 my @settings;
 
-&get_settings;
+
+Globals::get_settings;
 if ($eclipseoverride eq 1) {
     $settings->{'EclipseOnOff'} = 'Off';
 }
@@ -1670,7 +1268,7 @@ else {
         $cloud_record_number = 1;
     }
     elsif ($clouds_on_off == 2) {
-        CloudUpdate::cloud_update($cloud_image_url, $cloud_file_name, $xplanet_images_dir);  # Call cloud_update from the CloudUpdate module;
+        CloudUpdate::cloud_update();  # Call cloud_update from the CloudUpdate module;
         $cloud_record_number = 1;
     }
     
@@ -1687,10 +1285,7 @@ else {
     }
     
     if ($quake_on_off == 1) {
-        my @quakedata;
-        
-        $quake_record_number = earthquake::get_quakedata();
-        earthquake::WriteoutQuake($quake_record_number);
+        Earthquake::get_quakedata();
     }
     
     if ($norad_on_off == 1) {
@@ -1699,70 +1294,67 @@ else {
         my @issdata;
         my @ststimetable;
         
-        $norad_record_number = get_noraddata();
+        $norad_record_number = Norad::get_noraddata();
     }
     
-    if ($volcano_on_off == 1) {
-        my @volcanodata;
-        
-        $volcano_record_number = get_volcanodata();
-        if ($volcano_record_number !~ /what/) {
-            &WriteoutVolcano($volcano_record_number); 
-        }
+if ($volcano_on_off == 1) {
+    # Check if the volcano data needs to be updated
+    if (VolcanoXML::check_volcano_data()) {
+        # Process the volcano data using VolcanoXML module
+        VolcanoXML::process_volcano_data();
     }
+}
     
     if ($label_on_off == 1) {
-        &WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 0);
+        Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 0);
     }
     
     if ($update_label == 1) {
-        &WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 1);
+        Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 1);
     }
     
     if ($eclipse_on_off == 1) {
         my @eclipsedata;
         my @eclipsetrack;
-        my $eclipse_record_number = readineclipseindex();
-        my $active_eclipse_number = &datacurrent($eclipse_record_number);
+        my $eclipse_record_number = Eclipse::readineclipseindex();
+        my $active_eclipse_number = Eclipse::datacurrent($eclipse_record_number);
         
         if ($active_eclipse_number !~ /NONE/ || $active_eclipse_number !~ /\d/) {
             $active_eclipse_number = "NONE";
         }
-        #print "Eclipse Record Number = $eclipse_record_number\nActive Eclipse Number = $active_eclipse_number\n";
         
         if ($active_eclipse_number !~ /NONE/) {
             if ($eclipsedata[$active_eclipse_number]->{'detail'} =~ /CRUDE/) {
                 my @eclipserefined;
-                &refinedata($active_eclipse_number);
+                Eclipse::refinedata($active_eclipse_number);
             }
             
-            my $track_number = &readineclipsetrack($active_eclipse_number);
+            my $track_number = Eclipse::readineclipsetrack($active_eclipse_number);
             
-            &writeouteclipsearccenter($track_number);
-            &writeouteclipsemarker($track_number);
+            Eclipse::writeouteclipsearccenter($track_number);
+            Eclipse::writeouteclipsemarker($track_number);
             
             my $next_eclipse = timegm(0, $eclipsetrack[1]->{'minute'}, $eclipsetrack[1]->{'hour'}, $eclipsedata[$active_eclipse_number]->{'dayofmonth'}, num_of_month($eclipsedata[$active_eclipse_number]->{'monthtxt'}), $eclipsedata[$active_eclipse_number]->{'year'});
             my $time_now = time;
             my $countdown = ($next_eclipse - $time_now);
-            #print "$countdown\n";
             
             if ($countdown > 0) {
-                &writeouteclipsearcboarder($track_number);
+                Eclipse::writeouteclipsearcboarder($track_number);
             }
             
             if ($settings->{'EclipseNotifyOnOff'} =~ /On/) {
-                &writeouteclipselabel($active_eclipse_number, $track_number, $countdown);
+                Eclipse::writeouteclipselabel($active_eclipse_number, $track_number, $countdown);
             }
         }
         else {
-            &writeouteclipsefilesnone();
+            Eclipse::writeouteclipsefilesnone();
         }
         
         if ($EasterEgg_on_off !~ /0/ && $label_on_off == 1) {
-            easteregg();
+            EasterEgg::easteregg();
         }
     }
 }
-}
+
 
 #print "ON OFF = $volcano_on_off Volcano Record Number = $volcano_record_number \nON OFF = $quake_on_off Quake Record Number = $quake_record_number\nON OFF = $hurricane_on_off Hurricane Record Number = $hurricane_record_number\nON OFF = $clouds_on_off Cloud Record Number = $cloud_record_number\nON OFF = $norad_on_off NORAD Record Number = $norad_record_number\nON OFF = $label_on_off Label\nON OFF = $eclipse_on_off Eclipse\n";

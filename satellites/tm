@@ -1,7 +1,27 @@
-# This Satellite Track marker file created by TotalMarker - Client Edition version 2.6.1
-# For more information read the top of the TotalMarker file or go to
-# http://www.wizabit.eclipse.co.uk/xplanet
-# Last Updated: Fri Jul 26 08:39:47 2024
-#
+19548 "" image=sat.png transparent={0,0,0}
+21639 "" image=sat.png transparent={0,0,0}
+22314 "" image=sat.png transparent={0,0,0}
+23613 "" image=sat.png transparent={0,0,0}
+25994 "" image=sat.png transparent={0,0,0}
+26388 "" image=sat.png transparent={0,0,0}
+26998 "" image=sat.png transparent={0,0,0}
+27424 "" image=sat.png transparent={0,0,0}
+27566 "" image=sat.png transparent={0,0,0}
+27651 "" image=sat.png transparent={0,0,0}
+28376 "" image=sat.png transparent={0,0,0}
+28485 "" image=sat.png transparent={0,0,0}
+30580 "" image=sat.png transparent={0,0,0}
+30797 "" image=sat.png transparent={0,0,0}
+30798 "" image=sat.png transparent={0,0,0}
+33053 "" image=sat.png transparent={0,0,0}
+39070 "" image=sat.png transparent={0,0,0}
+39504 "" image=sat.png transparent={0,0,0}
+39574 "" image=sat.png transparent={0,0,0}
+40482 "" image=sat.png transparent={0,0,0}
+40483 "" image=sat.png transparent={0,0,0}
+40484 "" image=sat.png transparent={0,0,0}
+40485 "" image=sat.png transparent={0,0,0}
+42915 "" image=sat.png transparent={0,0,0}
+43013 "" image=sat.png transparent={0,0,0}
 25544 "ISS" image=iss_transparent.png transparent={0,0,0} trail={orbit,-5,0,5} color=yellow altcirc=0 trail={orbit,-10,0,5}
 20580 "HST" image=hst.png transparent={0,0,0}
