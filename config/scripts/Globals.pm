@@ -244,6 +244,14 @@ sub get_webpage {
     }
 }
 
+#   sub file_header($) {
+#       my ($openfile) = @_;
+#       print MF "# This $openfile marker file created by $Script - $Client version $VERSION\n";
+#       print MF "# For more information read the top of the $Script file or go to\n";
+#       print MF "# https://github.com/matthewc100/Xplanet-3\n";
+#       $tsn = localtime(time);
+#       print MF "# Last Updated: $tsn\n#\n";
+#   }
 
 sub get_settings {
     # Get_Settings subroutine

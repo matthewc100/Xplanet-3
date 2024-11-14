@@ -3,9 +3,8 @@ use strict;
 use warnings;
 use Time::Local;  # Load the Time::Local module
 
-use Globals qw($label_file);
+use Globals qw($label_file $labelsettings);  # Import $labelsettings from Globals
 
-sub WriteoutLabel {
     # 26 September 2024
     # Key Changes
         # Pass Filehandle to file_header:
@@ -19,164 +18,115 @@ sub WriteoutLabel {
             # Added detailed inline comments explaining each part of the subroutine for easier maintenance and understanding.
 
     # Accepts multiple update flags as arguments.
+    # Globals::get_ini_settings();  # Ensure settings are loaded
+
+    # Before accessing $labelsettings, add a check and print statements to confirm it is defined and populated:
+ 
+sub WriteoutLabel {
+    # Invocation parameters control which types to process
     my ($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label) = @_;
-    my $labelsettings;  # Stores various label settings.
-    my @Yco_ords;       # Array for Y coordinates.
-    my @Xco_ords;       # Array for X coordinates.
-    my @text1;          # Arrays for various text fields.
-    my @text2;
-    my @text3;
-    my @text4;
-    my @weekday;
-    my @monthday;
-    my @monthlet;
-    my @yeartime;
-    my @colour;         # Array for label colors.
-    my @image;          # Array for image settings.
-    my @position;       # Array for positions.
-    my $sec;            # Variables for time components.
-    my $min;
-    my $hour;
-    my $year;
-    my $mday;
-    my $mon;
-    my $wday;
-    my $yday;
-    my $isdst;
-    my $thisday;        # Current weekday.
-    my $thismonth;      # Current month.
-    my $time_now;       # Current time as a timestamp.
-    my $openfile;       # Name of the file being processed.
-    my $labellocate;    # Location for the label.
 
-    # Update flags to ensure they are set to 0 or 1.
-    $update_earth = $update_earth >= 1 ? 1 : 0;
-    $update_norad = $update_norad >= 1 ? 1 : 0;
-    $update_cloud = $update_cloud >= 1 ? 1 : 0;
-    $update_hurricane = $update_hurricane >= 1 ? 1 : ($update_hurricane == -1 ? 1 : 0);
-    $update_volcano = $update_volcano >= 1 ? 1 : 0;
-    
-    # If $update_label is set, reset all other update flags to 0.
-    if ($update_label >= 1) {
-        $update_earth = $update_norad = $update_cloud = $update_hurricane = $update_volcano = 0;
-    }
-
-    my $counter = 0;  # Initialize counter for tracking entries.
-    my $ok_color = $labelsettings->{'LabelColorOk'};       # OK label color.
-    my $warn_color = $labelsettings->{'LabelColorWarn'};   # Warning label color.
-    my $failed_color = $labelsettings->{'LabelColorError'};# Failed label color.
-
-    # Open the label file for reading.
-    open(MF, "<$label_file") or die "Cannot open $label_file: $!";
-
-    # Read the file line by line, splitting data into the respective arrays.
-    while (<MF>) {
-        (
-            $Yco_ords[$counter], $Xco_ords[$counter], $text1[$counter], $text2[$counter], 
-            $text3[$counter], $text4[$counter], $weekday[$counter], $monthday[$counter], 
-            $monthlet[$counter], $yeartime[$counter], $colour[$counter], $image[$counter], 
-            $position[$counter]
-        ) = split(" ");
-        $counter++;
-    }
-    
-    # Close the label file after reading.
-    close(MF);
-
-    # Define the %warning_length hash.
-    my %warning_length = (
-        quake          => ($labelsettings->{'LabelWarningQuake'} // 1) * 1,
-        cloud          => ($labelsettings->{'LabelWarningCloud'} // 1) * 1,
-        norad          => ($labelsettings->{'LabelWarningNorad'} // 1) * 1,
-        hurricane      => ($labelsettings->{'LabelWarningStorm'} // 1) * 1,
-        volcano        => ($labelsettings->{'LabelWarningVolcano'} // 1) * 1,
-        quakeerror     => ($labelsettings->{'LabelWarningQuake'} // 1) * 2,
-        clouderror     => ($labelsettings->{'LabelWarningCloud'} // 1) * 2,
-        noraderror     => ($labelsettings->{'LabelWarningNorad'} // 1) * 2,
-        hurricaneerror => ($labelsettings->{'LabelWarningStorm'} // 1) * 2,
-        volcanoerror   => ($labelsettings->{'LabelWarningVolcano'} // 1) * 2,
+    # Define the types and their invocation flags
+    my %types_to_check = (
+        "Earthquake" => $update_earth,
+        "NORAD"      => $update_norad,
+        "Cloud"      => $update_cloud,
+        "Hurricane"  => $update_hurricane,
+        "Volcano"    => $update_volcano,
     );
 
-    # Open the label file for writing, with error handling.
-    open(MF, ">$label_file") or die "Cannot open $label_file: $!";
-    
-    # Set the open file name to 'UpdateLabel'.
-    $openfile = 'UpdateLabel';
+    # Define positions for each type (local to WriteoutLabel)
+    my %type_positions = (
+        "Earthquake" => [-68, -13],
+        "NORAD"      => [-83, -13],
+        "Cloud"      => [-98, -13],
+        "Hurricane"  => [-113, -13],
+        "Volcano"    => [-128, -13],
+    );
 
-    # Pass the filehandle (MF) to file_header for writing the file header.
-    file_header($openfile, *MF);
+    # Track found data for each type
+    my %found_data = map { $_ => 0 } keys %types_to_check;
+    my $formatted_time = get_current_time();  # Get current timestamp for "not found" messages
 
-    my $recounter = 0;  # Initialize recounter.
-
-    # Loop through each entry and process updates.
-    while ($recounter != $counter) {
-        if ($update_earth && $text1[$recounter] =~ /Earthquake/) {
-            # Process Earthquake updates.
-            process_update(\*MF, $update_earth, 'quake', $ok_color, $warn_color, $failed_color, 
-                           $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
-                           $text2[$recounter], $text3[$recounter], $text4[$recounter], 
-                           $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
-                           $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
-                           $position[$recounter], \%warning_length, $wday);
-            $update_earth = 0;  # Reset flag after update.
-        } elsif ($update_norad && $text1[$recounter] =~ /NORAD/) {
-            # Process NORAD updates.
-            process_update(\*MF, $update_norad, 'norad', $ok_color, $warn_color, $failed_color, 
-                           $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
-                           $text2[$recounter], $text3[$recounter], $text4[$recounter], 
-                           $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
-                           $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
-                           $position[$recounter], \%warning_length, $wday);
-            $update_norad = 0;  # Reset flag after update.
-        } elsif ($update_cloud && $text1[$recounter] =~ /Cloud/) {
-            # Process Cloud updates.
-            process_update(\*MF, $update_cloud, 'cloud', $ok_color, $warn_color, $failed_color, 
-                           $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
-                           $text2[$recounter], $text3[$recounter], $text4[$recounter], 
-                           $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
-                           $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
-                           $position[$recounter], \%warning_length, $wday);
-            $update_cloud = 0;  # Reset flag after update.
-        } elsif ($update_hurricane && $text1[$recounter] =~ /Storm/) {
-            # Process Hurricane updates.
-            process_update(\*MF, $update_hurricane, 'hurricane', $ok_color, $warn_color, $failed_color, 
-                           $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
-                           $text2[$recounter], $text3[$recounter], $text4[$recounter], 
-                           $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
-                           $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
-                           $position[$recounter], \%warning_length, $wday);
-            $update_hurricane = 0;  # Reset flag after update.
-        } elsif ($update_volcano && $text1[$recounter] =~ /Volcano/) {
-            # Process Volcano updates.
-            process_update(\*MF, $update_volcano, 'volcano', $ok_color, $warn_color, $failed_color, 
-                           $Yco_ords[$recounter], $Xco_ords[$recounter], $text1[$recounter], 
-                           $text2[$recounter], $text3[$recounter], $text4[$recounter], 
-                           $weekday[$recounter], $monthday[$recounter], $monthlet[$recounter], 
-                           $yeartime[$recounter], $colour[$recounter], $image[$recounter], 
-                           $position[$recounter], \%warning_length, $wday);
-            $update_volcano = 0;  # Reset flag after update.
-        } elsif ($Yco_ords[$recounter] =~ /-\d\d/ && $text3[$recounter] =~ /Last/ && $text4[$recounter] =~ /Updated/) {
-            # Process last update for certain entries.
-            process_last_update(\*MF, \%warning_length, $ok_color, $warn_color, $failed_color, 
-                                $time_now, $Yco_ords[$recounter], $Xco_ords[$recounter], 
-                                $text1[$recounter], $text2[$recounter], $text3[$recounter], 
-                                $text4[$recounter], $weekday[$recounter], $monthday[$recounter], 
-                                $monthlet[$recounter], $yeartime[$recounter], $colour[$recounter], 
-                                $image[$recounter], $position[$recounter]);
+    # Step 1: Read existing entries into a hash, keyed by type
+    my %current_entries;
+    if (-e $label_file) {
+        open(my $read_fh, '<', $label_file) or die "Cannot open $label_file for reading: $!";
+        while (<$read_fh>) {
+            chomp;
+            my $line = $_;
+            foreach my $type (keys %types_to_check) {
+                if ($line =~ /\b$type\b/i) {
+                    $current_entries{$type} = $line;  # Store existing line for the type
+                    last;
+                }
+            }
         }
-        # Move to the next entry.
-        $recounter++;
+        close($read_fh);
     }
 
-    # Close the file after all updates are written.
-    close(MF) or warn "Could not close $label_file: $!";
+    # Step 2: Update or add entries based on invocation flags and data
+    foreach my $type (keys %types_to_check) {
+        next unless $types_to_check{$type};  # Only process types with flags set to 1
+        if ($current_entries{$type}) {
+            # Process the line if found in existing entries
+            print "Updating existing data for $type...\n";
+            $current_entries{$type} = process_data_for_type($type, \%type_positions);  # Pass %type_positions to subroutine
+            $found_data{$type} = 1;
+        } else {
+            # Mark as missing if type not found in current entries
+            $found_data{$type} = 0;
+        }
+    }
+
+    # Step 3: Write header and updated data to the file
+    open(my $write_fh, '>', $label_file) or die "Cannot open $label_file for writing: $!";
+    file_header('UpdateLabel', $write_fh);  # Write header
+
+    # Output updated data or missing messages
+    foreach my $type (keys %types_to_check) {
+        if ($found_data{$type} && $current_entries{$type}) {
+            print $write_fh "$current_entries{$type}\n";  # Write the updated line
+        } elsif ($types_to_check{$type} && !$found_data{$type}) {
+            # Output "not found" message if data is missing
+            my ($Yco, $Xco) = @{$type_positions{$type}};
+            output_missing_message($write_fh, $type, $formatted_time, $Yco, $Xco);
+        }
+    }
+    close($write_fh);
 }
 
+# Subroutine to process data for a specific type and return formatted string
+sub process_data_for_type {
+    my ($type, $type_positions) = @_;  # Receive %type_positions as a reference
+
+    # Example position and color assignments, replace with actual data processing as needed
+    my ($Yco, $Xco) = @{$type_positions->{$type}};
+    my $color = "Green";  # Assume the color is determined dynamically
+    my $formatted_time = get_current_time();
+    return "$Yco $Xco \"$type information last updated\" $formatted_time color=$color image=none position=pixel";
+}
+
+# Subroutine to output a "not found" message at specified coordinates for missing data
+sub output_missing_message {
+    my ($fh, $type, $formatted_time, $Yco, $Xco) = @_;
+    print $fh "$Yco $Xco \"$type information not found\" $formatted_time color=Red image=none position=pixel\n";
+}
+
+# Helper to get the current timestamp for output messages
+sub get_current_time {
+    my ($sec, $min, $hour, $mday, $mon, $year) = localtime();
+    $year += 1900;
+    $mon = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)[$mon];
+    return sprintf("%02d-%s-%04d %02d:%02d", $mday, $mon, $year, $hour, $min);
+}
 
 sub process_update {
     my ($fh, $update_status, $type, $ok_color, $warn_color, $failed_color, 
         $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
         $monthlet, $yeartime, $colour, $image, $position, $warning_length, $wday) = @_;
+
+    print "Processing update for type: $type, Status: $update_status\n";
 
     print $fh "$Yco $Xco \"$text1 Information Last Updated";
     substr($yeartime, -1, 1, "");  # Replace the last character with an empty string
@@ -278,17 +228,27 @@ sub num_of_month {
     return $months{$month};
 }
 
+# Helper to write a file header (called when creating a new file)
 sub file_header {
-    my ($openfile, $filehandle) = @_;  # Accept the filehandle as an argument
+    my ($openfile, $filehandle) = @_;
 
     # Check if the filehandle is valid before proceeding
     unless (defined $filehandle && fileno($filehandle)) {
         die "Filehandle is not valid or not open in Label::file_header";
     }
 
-    # Dereference the filehandle glob to ensure it's treated as an actual filehandle
+    # Get the current date and time
+    my ($sec, $min, $hour, $mday, $mon, $year) = localtime();
+    $year += 1900;  # Adjust year
+    my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+    my $formatted_date = sprintf("%02d-%s-%04d %02d:%02d", $mday, $months[$mon], $year, $hour, $min);
+
+    # Write the header to the file
     print $filehandle "# This is the header for $openfile\n";
-    print $filehandle "# Additional header information...\n";
+    print $filehandle "# Original idea by Michael Dear\n";
+    print $filehandle "# Revamped by Matt Coblentz October 2024\n";
+    print $filehandle "# Updated $formatted_date\n";  # Add the formatted date and time
+    print $filehandle "# \n";
 }
 
 1; # End of the module

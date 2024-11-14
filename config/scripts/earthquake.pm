@@ -12,6 +12,8 @@ use Globals qw(
     @quakedata 
     ); 
 
+use Label qw(file_header);  # Import the file_header subroutine from the Label module
+
 use constant FAILED => -1;
 
 our @EXPORT_OK = qw(
@@ -39,24 +41,6 @@ my $quake_location_CSV_30D_45 = "https://earthquake.usgs.gov/earthquakes/feed/v1
 my $quake_location_CSV_30D_25 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv";
 my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_month.csv";
 my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
-
-my $quakesettings = {
-    'QuakePixelMax' => 10,
-    'QuakePixelMin' => 2,
-    'QuakePixelFactor' => 1.5,
-    'QuakeDetailColor' => 'Multi',
-    'QuakeDetailColorMin' => 'Blue',
-    'QuakeDetailColorInt' => 'Yellow',
-    'QuakeDetailColorMax' => 'Red',
-    'QuakeCircleColor' => 'Multi',
-    'QuakeMinimumSize' => 5,
-    'QuakeImageList' => '',
-    'QuakeImageTransparent' => 1,
-    'QuakeDetailList' => '<date> <time> <lat> <long> <depth> <mag> <quality> <location>',
-    'QuakeDetailAlign' => 'center',
-    'QuakeReportingDuration' => 'day',
-    'QuakeReportingSize' => 'significant',
-};
 
 # Subroutine to draw a circle based on magnitude
 sub drawcircle {
@@ -147,27 +131,28 @@ sub colourisetext {
     }
 }
 
-sub colourisemag {
-    my ($mag) = @_;
-    my $quake_circle_colour = $quakesettings->{'QuakeCircleColor'};
-
-    if ($quake_circle_colour =~ /Multi/i) {
-        my $quake_detail_min = $quakesettings->{'QuakeDetailColorMin'};
-        my $quake_detail_int = $quakesettings->{'QuakeDetailColorInt'};
-        my $quake_detail_max = $quakesettings->{'QuakeDetailColorMax'};
-        my $colour;
-
-        if ($mag < 4) {
-            $colour = $quake_detail_min;
-        } elsif ($mag > 5) {
-            $colour = $quake_detail_max;
-        } else {
-            $colour = $quake_detail_int;
-        }
-
-        return $colour;
-    } else {
-        return $quake_circle_colour;
+sub colourisemag($) {
+    my ($mag)=@_;
+    
+    if ($quakesettings->{'QuakeCircleColor'} !~ /Multi/) {
+        return $quakesettings->{'QuakeCircleColor'};
+    }
+    else {
+        return 'SeaGreen'               if $mag < 2.5;
+        return 'PaleGreen'              if $mag < 3.0;
+        return 'Green'                  if $mag < 3.5;
+        return 'ForestGreen'            if $mag < 4.0;
+        return 'Khaki'                  if $mag < 4.5; # Structal Damage
+        return 'LightGoldenrodYellow'   if $mag < 5.0;
+        return 'Yellow'                 if $mag < 5.5;
+        return 'DarkGoldenrod'          if $mag < 6.0;
+        return 'Salmon'                 if $mag < 6.5; # Major Damage
+        return 'Orange'                 if $mag < 7.0;
+        return 'Tomato'                 if $mag < 7.5;
+        return 'OrangeRed'              if $mag < 8.0;
+        return 'Red'                    if $mag < 8.5; # End of Scale
+        return 'White'                  if $mag < 10; # We are in the sh1t now :P
+        return 'Aquamarine';
     }
 }
 
@@ -175,37 +160,47 @@ sub colourisemag {
 sub WriteoutQuake {
     my ($drawcircles, @quakedata) = @_;
 
-    # Trim any leading/trailing spaces from the file path
+    # Ensure the file path is properly trimmed
     $quake_marker_file =~ s/^\s+|\s+$//g;
 
     # Debugging output
-    print "Debug: Writing to $quake_marker_file\n";
+    #print "Debug: Writing to $quake_marker_file\n";
 
     open(my $qmf, ">", $quake_marker_file) or die "Cannot open $quake_marker_file: $!";
 
+    # Call file_header to write the header to the marker file
+    Label::file_header('Earthquake', $qmf);  # Passing the filehandle to the file_header subroutine
+    
+    my $minimum_size = $quakesettings->{'QuakeMinimumSize'};  # Get the minimum magnitude from settings
+
     foreach my $quake (@quakedata) {
         my @quakearray = split /,/, $quake;
-        print "Debug: Processing quake entry: ", join(", ", @quakearray), "\n";
+        #print "Debug: Processing quake entry: ", join(", ", @quakearray), "\n";
 
-        my $mag = $quakearray[4];
+        my $lat =  sprintf("% 8.2f", $quakearray[1]);  # Latitude with 2 decimal places, right-aligned, total width 8
+        my $long = sprintf("% 9.2f", $quakearray[2]);  # Longitude with 2 decimal places, right-aligned, total width 9
+        my $mag =  sprintf("%.1f", $quakearray[4]);   # Magnitude with 1 decimal place
 
-        # Assuming colourisemag and drawcircle functions are working correctly
-        my $circlecolour = colourisemag($mag);
-        my $circlepixel = drawcircle($mag);
-        my $textcolour = colourisetext($mag);
+        # Check if the magnitude meets the minimum size requirement
+        if ($mag >= $minimum_size) {
 
-        print $qmf <<~"END";
-            text={color=$textcolour, lat=$quakearray[2], long=$quakearray[3], text="$quakearray[0] $quakearray[1] $quakearray[4] $quakearray[5] $quakearray[6] $quakearray[7]"}
-            END
+            # Assuming colourisemag and drawcircle functions are working correctly
+            my $circlecolour = colourisemag($mag);
+            my $circlepixel = drawcircle($mag);
+            my $textcolour = colourisetext($mag);
 
-        if ($drawcircles == 1) {
-            print $qmf "circle={lat=$quakearray[2], long=$quakearray[3], radius=$circlepixel, color=$circlecolour, width=1}\n";
+            # First line with empty text
+            print $qmf "$lat $long \"\" color=$circlecolour symbolsize=$circlepixel\n";
+
+            # Second line with magnitude text, color, and alignment
+            print $qmf "$lat $long \"$mag\" color=$textcolour align=Above\n";
         }
     }
 
     close($qmf) or die "Cannot close $quake_marker_file: $!";
-    print "Debug: Finished writing to $quake_marker_file\n";
+    print "Updated quake marker file\n";
 }
+
 
 
 # Subroutine to get quake feed based on reporting duration and size
@@ -214,8 +209,8 @@ sub get_Correct_quake_Feed {
     my $quake_reporting_size = $quakesettings->{'QuakeReportingSize'};
     my $quakelocation = '';
 
-    if ($quake_reporting_duration eq "day") {
-        if ($quake_reporting_size eq "significant") {
+    if (lc($quake_reporting_duration) eq "day") {
+        if (lc($quake_reporting_size) eq "significant") {
             $quakelocation = $quake_location_CSV_24H_SIG;
         } elsif ($quake_reporting_size eq "4.5") {
             $quakelocation = $quake_location_CSV_24H_45;
@@ -226,8 +221,8 @@ sub get_Correct_quake_Feed {
         } else {
             $quakelocation = $quake_location_CSV_24H_ALL;
         }
-    } elsif ($quake_reporting_duration eq "week") {
-        if ($quake_reporting_size eq "significant") {
+    } elsif (lc($quake_reporting_duration) eq "week") {
+        if (lc($quake_reporting_size) eq "significant") {
             $quakelocation = $quake_location_CSV_7D_SIG;
         } elsif ($quake_reporting_size eq "4.5") {
             $quakelocation = $quake_location_CSV_7D_45;
@@ -238,8 +233,8 @@ sub get_Correct_quake_Feed {
         } else {
             $quakelocation = $quake_location_CSV_7D_ALL;
         }
-    } elsif ($quake_reporting_duration eq "month") {
-        if ($quake_reporting_size eq "significant") {
+    } elsif (lc($quake_reporting_duration) eq "month") {
+        if (lc($quake_reporting_size) eq "significant") {
             $quakelocation = $quake_location_CSV_30D_SIG;
         } elsif ($quake_reporting_size eq "4.5") {
             $quakelocation = $quake_location_CSV_30D_45;
@@ -251,6 +246,7 @@ sub get_Correct_quake_Feed {
             $quakelocation = $quake_location_CSV_30D_ALL;
         }
     }
+     return $quakelocation;  # Return the correct quake location
 }
 
 # Subroutine to get quake data from the quake feed
@@ -259,7 +255,9 @@ sub get_quakedata {
     $ua->timeout(60);
     $ua->env_proxy;
 
-    my $quakelocation = $quake_location;
+    # Get the correct quake feed URL
+    my $quakelocation = Earthquake::get_Correct_quake_Feed();
+
     my $req = HTTP::Request->new(GET => $quakelocation);
     my $res = $ua->request($req);
 
@@ -275,12 +273,8 @@ sub get_quakedata {
             }
             push @quakedata, $line;
         }
-        # Debugging - use join to print each quake data on a new line
-        #print "Quake Data:\n", join("\n", @quakedata), "\n";
         # After retrieving quake data, call WriteoutQuake and pass the data
-        WriteoutQuake(1, @quakedata);  # Assuming you want to draw circles, pass @quakedata here
-
-
+        WriteoutQuake(1, @quakedata);  # Assuming you want to draw circles
     } else {
         print "Failed to retrieve quake data: ", $res->status_line, "\n";
         return FAILED;
@@ -288,5 +282,6 @@ sub get_quakedata {
 
     return 1;
 }
+
 
 1; # End of the module

@@ -50,8 +50,8 @@ sub WriteoutVolcano {
             my $elev = $volcanodata[$recounter]->{'elev'};
 
             # Format latitude and longitude with two decimal places.
-            $lat  = sprintf("% 7.2f", $lat);
-            $long = sprintf("% 7.2f", $long);
+            $lat  = sprintf("% 8.2f", $lat);
+            $long = sprintf("% 9.2f", $long);
 
             # Print inner and middle circle markers for the volcano.
             print VOLCANO_FH "$lat $long \"\" color=$volcanosettings->{'VolcanoCircleColorInner'} symbolsize=$volcanosettings->{'VolcanoCircleSizeInner'}\n";

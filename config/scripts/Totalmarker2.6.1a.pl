@@ -42,8 +42,8 @@ use CloudUpdate qw(
     );
 
 use Norad qw(
-    get_noraddata 
-    );#
+    process_satellites
+    );
 
 use Earthquake qw(
     WriteoutQuake 
@@ -1288,13 +1288,14 @@ else {
         Earthquake::get_quakedata();
     }
     
-    if ($norad_on_off == 1) {
-        my @stsdata;
-        my @hstdata;
-        my @issdata;
-        my @ststimetable;
+    if ($norad_on_off == 1) {    
+        # Define the input satellite file, the output TLE file, and the marker file paths
+        my $satellite_file = "$xplanet_satellites_dir\\Norad";      # e.g., "iss"
+        my $output_tle_file = "$xplanet_satellites_dir\\Norad.tle";     # e.g., "iss.tle"
+        my $marker_file = "$xplanet_satellites_dir\\Norad_marker.txt";     # e.g., "iss_marker.txt"        
         
-        $norad_record_number = Norad::get_noraddata();
+        # Call the process_satellites function to process the satellite data
+        Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
     }
     
 if ($volcano_on_off == 1) {

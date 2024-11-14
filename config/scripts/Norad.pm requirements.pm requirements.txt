@@ -91,6 +91,6 @@ NoradMiscDetail=
 NoradFileName=tm
 
 This list of settings brings up a few ideas.  
-5a. If there is no 
+5a. If there is no specific call for the ISS but the ISS switch is 'on':
 If NoradIssOnOff = On, then assume that satellite 25544 is being requested and plan to return the ephemeris data as a TLE in the output.
-5b. If NoradISSText = <some value>, then over
+5b. If NoradISSText = <some value>, then overlay that text instead of the text supplied by the $satellite_file (aka iss)

@@ -4,12 +4,12 @@
 #
 
 25544 "ISS" image=none transparent={0,0,0} altcirc=35 color=white
-25544 "" image=C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\xplanet\images\iss_transparent.png  trail={ground,-5,0,1} color=indigo
-25544 "" image=none trail={ground,0,10,1} color={31, 239, 232, 0.81}
+25544 "" image=C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\xplanet\images\iss_transparent.png  trail={ground,-5,0,1} color={31, 239, 232}
+25544 "" image=none trail={ground,0,10,1} color={31, 239, 232}
 
-48274 "" image=none transparent={0,0,0} altcirc=35 color=gray
-48274 "CSS" image=C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\xplanet\images\Tiangong_station_150x126.png  trail={ground,-5,0,1} color={255, 87, 51, 1.0}
-48274 "" image=none trail={ground,0,10,1} color=red
+#48274 "" image=none color=blue altcirc=35 
+48274 "CSS" image=C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\xplanet\images\Tiangong_station_150x126.png trail={ground,-5,0,1} color={255, 194, 51, 1.0} 
+48274 "" image=none trail={ground,0,10,1} color={245, 120, 120}
 
 20580 "" image=none transparent={0,0,0} altcirc=35 color=white
 20580 "HST" image=C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\xplanet\images\Hubble-transparent.png  trail={ground,-5,0,1} color=gray
