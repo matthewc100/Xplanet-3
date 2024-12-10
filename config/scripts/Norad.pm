@@ -100,11 +100,11 @@ sub process_satellites {
     my @file_satellite_ids = parse_satellite_file($satellite_file) unless @satellite_ids;
     
     # Conflict checking for ISS and HST NORAD numbers
-    if (grep { $_ == 25544 } @file_satellite_ids && $noradsettings->{NoradIssOnOff} eq "On") {
+    if (grep { $_ == 25544 } @file_satellite_ids && $noradsettings->{noradissonoff} eq "On") {
         warn "Conflict detected: ISS (25544) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
-    if (grep { $_ == 20580 } @file_satellite_ids && $noradsettings->{NoradHstOnOff} eq "On") {
+    if (grep { $_ == 20580 } @file_satellite_ids && $noradsettings->{noradhstonoff} eq "On") {
         warn "Conflict detected: HST (20580) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
@@ -122,20 +122,20 @@ sub process_satellites {
         # Customize marker entry based on NORAD settings
         my ($image, $text, $detail) = ("default.png", "", "color=white altcirc=35");
         
-        if ($sat_id == 25544 && $noradsettings->{NoradIssOnOff} eq "On") {  # ISS specific settings
-            $image  = $noradsettings->{NoradIssImage} // $image;
-            $text   = $noradsettings->{NoradIssText} // "ISS";
-            $detail = $noradsettings->{NoradIssDetail} // $detail;
+        if ($sat_id == 25544 && $noradsettings->{noradissonoff} eq "On") {  # ISS specific settings
+            $image  = $noradsettings->{noradissimage} // $image;
+            $text   = $noradsettings->{noradisstext} // "ISS";
+            $detail = $noradsettings->{noradissdetail} // $detail;
         }
-        elsif ($sat_id == 20580 && $noradsettings->{NoradHstOnOff} eq "On") {  # HST specific settings
-            $image  = $noradsettings->{NoradHstImage} // $image;
-            $text   = $noradsettings->{NoradHstText} // "HST";
-            $detail = $noradsettings->{NoradHstDetail} // $detail;
+        elsif ($sat_id == 20580 && $noradsettings->{noradhstonoff} eq "On") {  # HST specific settings
+            $image  = $noradsettings->{noradhstimage} // $image;
+            $text   = $noradsettings->{noradhsttext} // "HST";
+            $detail = $noradsettings->{noradhstdetail} // $detail;
         }
-        elsif ($noradsettings->{NoradSatOnOff} eq "On") {  # Default satellite settings
-            $image  = $noradsettings->{NoradSatImage} // $image;
-            $text   = $noradsettings->{NoradSatText} // "";
-            $detail = $noradsettings->{NoradSatDetail} // $detail;
+        elsif ($noradsettings->{noradsatonoff} eq "On") {  # Default satellite settings
+            $image  = $noradsettings->{noradsatimage} // $image;
+            $text   = $noradsettings->{noradsattext} // "";
+            $detail = $noradsettings->{noradsatdetail} // $detail;
         }
         else {
             next;  # Skip if no settings are enabled for this satellite

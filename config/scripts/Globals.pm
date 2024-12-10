@@ -152,7 +152,6 @@ sub get_ini_settings {
 
         if (/^\[(.+)\]$/) {  # Match section headers like [INSTALLATION DIRECTORY]
             $current_section = lc($1);  # Normalize section header to lowercase
-            print "Globals:311 Debug: current section is: $current_section\n";
             next;
         }
 
@@ -164,9 +163,7 @@ sub get_ini_settings {
         # Strip quotes from the value
         $value =~ s/^"(.*)"$/$1/;  # Removes double quotes from around the value if present
 
-        print "Globals:319 Debug: Raw setting '$setting' with value '$value' in section '$current_section'\n";
-
-        # Process the [INSTALLATION DIRECTORY] section
+       # Process the [INSTALLATION DIRECTORY] section
         if ($current_section eq 'installation directory') {
             my $normalized_key = lc($setting);  # Normalize key to lowercase
             if ($normalized_key eq 'xplanet_dir') {
