@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+Globals::get_ini_settings();  # Ensure settings are loaded
+
 our @EXPORT_OK = qw(
     $settings
     $xplanet_dir
@@ -139,24 +141,47 @@ sub get_ini_settings {
     my $settings_ini_file = "$ENV{'XPLANET_DIR'}\\config\\totalmarker.ini";
     open (MF, "<$settings_ini_file") or die "Could not open settings file: $!";
     
+    my $current_section = '';  # Track the current section (e.g., "installation directory")
+
     while (<MF>) {
         chomp;  # Remove newline characters
-        next if /^\s*$/ || /^\s*#/;  # Skip empty lines or comments
-        
+
+        # Skip empty lines and comments
+        next if /^\s*$/;  # Skip empty lines
+        next if /^\s*#/;  # Skip lines starting with '#'
+
+        if (/^\[(.+)\]$/) {  # Match section headers like [INSTALLATION DIRECTORY]
+            $current_section = lc($1);  # Normalize section header to lowercase
+            print "Globals:311 Debug: current section is: $current_section\n";
+            next;
+        }
+
+        # Split the line into $setting and $value
         my ($setting, $value) = split("=", $_, 2);
-        
-        # Strip quotes if they exist around the value
+        $setting //= '';  # Default to empty string if not defined
+        $value //= '';    # Default to empty string if not defined
+
+        # Strip quotes from the value
         $value =~ s/^"(.*)"$/$1/;  # Removes double quotes from around the value if present
 
-        if ($setting eq 'xplanet_dir') {
-            $xplanet_dir = $value;
-            update_directories();  # Update directory paths based on the root
+        print "Globals:319 Debug: Raw setting '$setting' with value '$value' in section '$current_section'\n";
+
+        # Process the [INSTALLATION DIRECTORY] section
+        if ($current_section eq 'installation directory') {
+            my $normalized_key = lc($setting);  # Normalize key to lowercase
+            if ($normalized_key eq 'xplanet_dir') {
+                $xplanet_dir = $value;  # Set the installation directory
+                print "Globals:325 Debug: xplanet_dir set to $xplanet_dir\n";
+                update_directories();  # Update directory paths based on the root
+            }
         }
-        
-        # Other settings processing
+
+        # Add logic for other sections if needed...
     }
+
     close MF;
 }
+
 
 sub update_directories {
     # Function to update directory paths based on xplanet_dir
@@ -295,6 +320,7 @@ sub get_settings {
     #    Improved Debugging: The debug output is simplified and only prints relevant information.
     #    These settings are now properly scoped to be global. 
     open (MF, "<$settings_ini_file") or die "Could not open settings file: $!";
+    my $current_section = '';  # Track the current section (e.g., "CLOUDS")
 
     while (<MF>) {
         chomp;  # Remove newline characters
@@ -303,126 +329,77 @@ sub get_settings {
         next if /^\s*$/;  # Skip empty lines
         next if /^\s*#/;  # Skip lines starting with '#'
         
+        if (/^\[(.+)\]$/) {  # Match section headers like [CLOUDS]
+            $current_section = lc($1);  # Store the section name in lowercase
+            next;
+        }
+
         # Split the line into $setting and $result, with default values
         my ($setting, $result) = split("=", $_, 2);
         $setting //= '';  # Default to empty string if not defined
         $result //= '';   # Default to empty string if not defined
-            
-        if ($setting =~ /^Quake/) {
-            if ($setting =~ /QuakeDetailColorMin/) {$quakesettings->{'QuakeDetailColorMin'} = $result;}
-            elsif ($setting =~ /QuakeDetailColorInt/) {$quakesettings->{'QuakeDetailColorInt'} = $result;}
-            elsif ($setting =~ /QuakeDetailColorMax/) {$quakesettings->{'QuakeDetailColorMax'} = $result;}
-            elsif ($setting =~ /QuakeDetailAlign/) {$quakesettings->{'QuakeDetailAlign'} = $result;}
-            elsif ($setting =~ /QuakeCircleColor/) {$quakesettings->{'QuakeCircleColor'} = $result;}
-            elsif ($setting =~ /QuakePixelMax/) {$quakesettings->{'QuakePixelMax'} = $result;}
-            elsif ($setting =~ /QuakePixelMin/) {$quakesettings->{'QuakePixelMin'} = $result;}
-            elsif ($setting =~ /QuakePixelFactor/) {$quakesettings->{'QuakePixelFactor'} = $result;}
-            elsif ($setting =~ /QuakeImageTransparent/) {$quakesettings->{'QuakeImageTransparent'} = $result;}
-            elsif ($setting =~ /QuakeImageList/) {$quakesettings->{'QuakeImageList'} = $result;}
-            elsif ($setting =~ /QuakeDetailColor/) {$quakesettings->{'QuakeDetailColor'} = $result;}
-            elsif ($setting =~ /QuakeDetailList/) {$quakesettings->{'QuakeDetailList'} = $result;}
-            elsif ($setting =~ /QuakeMinimumSize/) {$quakesettings->{'QuakeMinimumSize'} = $result;}
-            elsif ($setting =~ /QuakeReportingDuration/) {$quakesettings->{'QuakeReportingDuration'} = $result;}
-            elsif ($setting =~ /QuakeReportingSize/) {$quakesettings->{'QuakeReportingSize'} = $result;}
-            elsif ($setting =~ /QuakeFade/) {$quakesettings->{'QuakeFade'} = $result;}                      
+
+        if ($current_section eq 'quakes') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $quakesettings->{$normalized_key} = $result;
+        }
+
+        elsif ($current_section eq 'volcanoes') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $volcanosettings->{$normalized_key} = $result;
+        }
+
+        elsif ($current_section eq 'storms') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $stormsettings->{$normalized_key} = $result;
+        }
+        
+        elsif ($current_section eq 'eclipses') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $settings->{$normalized_key} = $result;
+        }
+        
+        elsif ($current_section eq 'norad') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $noradsettings->{$normalized_key} = $result;
+        }
+
+        elsif ($current_section eq 'labelupdate') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $labelsettings->{$normalized_key} = $result;
+        }
+
+        elsif ($current_section eq 'easter') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $settings->{$normalized_key} = $result;
+        }
+        
+        elsif ($current_section eq 'misc') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $settings->{$normalized_key} = $result;
         }
             
-        elsif ($setting =~ /^Volcano/) {
-            if ($setting =~ /VolcanoCircleSizeInner/) {$volcanosettings->{'VolcanoCircleSizeInner'} = $result;}
-            elsif ($setting =~ /VolcanoCircleSizeMiddle/) {$volcanosettings->{'VolcanoCircleSizeMiddle'} = $result;}
-            elsif ($setting =~ /VolcanoCircleSizeOuter/) {$volcanosettings->{'VolcanoCircleSizeOuter'} = $result;}
-            elsif ($setting =~ /VolcanoCircleColorInner/) {$volcanosettings->{'VolcanoCircleColorInner'} = $result;}
-            elsif ($setting =~ /VolcanoCircleColorMiddle/) {$volcanosettings->{'VolcanoCircleColorMiddle'} = $result;}
-            elsif ($setting =~ /VolcanoCircleColorOuter/) {$volcanosettings->{'VolcanoCircleColorOuter'} = $result;}
-            elsif ($setting =~ /VolcanoNameOnOff/) {$volcanosettings->{'VolcanoNameOnOff'} = $result;}
-            elsif ($setting =~ /VolcanoNameColor/) {$volcanosettings->{'VolcanoNameColor'} = $result;}
-            elsif ($setting =~ /VolcanoNameAlign/) {$volcanosettings->{'VolcanoNameAlign'} = $result;}
-            elsif ($setting =~ /VolcanoImageTransparent/) {$volcanosettings->{'VolcanoImageTransparent'} = $result;}
-            elsif ($setting =~ /VolcanoImageList/) {$volcanosettings->{'VolcanoImageList'} = $result;}
-            elsif ($setting =~ /VolcanoDetailAlign/) {$volcanosettings->{'VolcanoDetailAlign'} = $result;}
-            elsif ($setting =~ /VolcanoDetailList/) {$volcanosettings->{'VolcanoDetailList'} = $result;}
-            elsif ($setting =~ /VolcanoDetailColor/) {$volcanosettings->{'VolcanoDetailColor'} = $result;}
+        elsif ($current_section eq 'clouds') {
+            my $normalized_key = lc($setting);  # Normalize to lowercase
+            $cloudsettings->{$normalized_key} = $result;
         }
-            
-        elsif ($setting =~ /^Storm/) {
-            if ($setting =~ /StormColorTrackReal/) {$stormsettings->{'StormColorTrackReal'} = $result;}
-            elsif ($setting =~ /StormColorTrackPrediction/) {$stormsettings->{'StormColorTrackPrediction'} = $result;}
-            elsif ($setting =~ /StormColorName/) {$stormsettings->{'StormColorName'} = $result;}
-            elsif ($setting =~ /StormColorDetail/) {$stormsettings->{'StormColorDetail'} = $result;}
-            elsif ($setting =~ /StormAlignName/) {$stormsettings->{'StormAlignName'} = $result;}
-            elsif ($setting =~ /StormAlignDetail/) {$stormsettings->{'StormAlignDetail'} = $result;}
-            elsif ($setting =~ /StormImageTransparent/) {$stormsettings->{'StormImageTransparent'} = $result;}
-            elsif ($setting =~ /StormImageList/) {$stormsettings->{'StormImageList'} = $result;}
-            elsif ($setting =~ /StormDetailAlign/) {$stormsettings->{'StormDetailAlign'} = $result;}
-            elsif ($setting =~ /StormDetailList/) {$stormsettings->{'StormDetailList'} = $result;}
-            elsif ($setting =~ /StormTrackOnOff/) {$stormsettings->{'StormTrackOnOff'} = $result;}
-            elsif ($setting =~ /StormNameOnOff/) {$stormsettings->{'StormNameOnOff'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Eclipse/) {
-            if ($setting =~ /EclipseOnOff/) {$settings->{'EclipseOnOff'} = $result;}
-            elsif ($setting =~ /EclipseNotifyOnOff/) {$settings->{'EclipseNotifyOnOff'} = $result;}
-            elsif ($setting =~ /EclipseNotifyTimeHours/) {$settings->{'EclipseNotifyTimeHours'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Norad/) {
-            if ($setting =~ /NoradIssImage/) {$noradsettings->{'NoradIssImage'} = $result;}
-            elsif ($setting =~ /NoradIssText/) {$noradsettings->{'NoradIssText'} = $result;}
-            elsif ($setting =~ /NoradIssDetail/) {$noradsettings->{'NoradIssDetail'} = $result;}
-            elsif ($setting =~ /NoradIssOnOff/) {$noradsettings->{'NoradIssOnOff'} = $result;}
-            elsif ($setting =~ /NoradHstImage/) {$noradsettings->{'NoradHstImage'} = $result;}
-            elsif ($setting =~ /NoradHstText/) {$noradsettings->{'NoradHstText'} = $result;}
-            elsif ($setting =~ /NoradHstDetail/) {$noradsettings->{'NoradHstDetail'} = $result;}
-            elsif ($setting =~ /NoradHstOnOff/) {$noradsettings->{'NoradHstOnOff'} = $result;}
-            elsif ($setting =~ /NoradSoyuzImage/) {$noradsettings->{'NoradSoyuzImage'} = $result;}
-            elsif ($setting =~ /NoradSoyuzText/) {$noradsettings->{'NoradSoyuzText'} = $result;}
-            elsif ($setting =~ /NoradSoyuzDetail/) {$noradsettings->{'NoradSoyuzDetail'} = $result;}
-            elsif ($setting =~ /NoradSoyuzOnOff/) {$noradsettings->{'NoradSoyuzOnOff'} = $result;}
-            elsif ($setting =~ /NoradStsImage/) {$noradsettings->{'NoradStsImage'} = $result;}
-            elsif ($setting =~ /NoradStsText/) {$noradsettings->{'NoradStsText'} = $result;}
-            elsif ($setting =~ /NoradStsDetail/) {$noradsettings->{'NoradStsDetail'} = $result;}
-            elsif ($setting =~ /NoradStsOnOff/) {$noradsettings->{'NoradStsOnOff'} = $result;}
-            elsif ($setting =~ /NoradSatImage/) {$noradsettings->{'NoradSatImage'} = $result;}
-            elsif ($setting =~ /NoradSatText/) {$noradsettings->{'NoradSatText'} = $result;}
-            elsif ($setting =~ /NoradSatDetail/) {$noradsettings->{'NoradSatDetail'} = $result;}
-            elsif ($setting =~ /NoradSatOnOff/) {$noradsettings->{'NoradSatOnOff'} = $result;}
-            elsif ($setting =~ /NoradTleNumbers/) {$noradsettings->{'NoradTleNumbers'} = $result;}
-            elsif ($setting =~ /NoradMiscOnOff/) {$noradsettings->{'NoradMiscOnOff'} = $result;}
-            elsif ($setting =~ /NoradMiscDetail/) {$noradsettings->{'NoradMiscDetail'} = $result;}
-            elsif ($setting =~ /NoradFileName/) {$noradsettings->{'NoradFileName'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Label/) {
-            if ($setting =~ /LabelWarningQuake/) {$labelsettings->{'LabelWarningQuake'} = $result;}
-            elsif ($setting =~ /LabelWarningVolcano/) {$labelsettings->{'LabelWarningVolcano'} = $result;}
-            elsif ($setting =~ /LabelWarningStorm/) {$labelsettings->{'LabelWarningStorm'} = $result;}
-            elsif ($setting =~ /LabelWarningNorad/) {$labelsettings->{'LabelWarningNorad'} = $result;}
-            elsif ($setting =~ /LabelWarningCloud/) {$labelsettings->{'LabelWarningCloud'} = $result;}
-            elsif ($setting =~ /LabelColorOk/) {$labelsettings->{'LabelColorOk'} = $result;}
-            elsif ($setting =~ /LabelColorWarn/) {$labelsettings->{'LabelColorWarn'} = $result;}
-            elsif ($setting =~ /LabelColorError/) {$labelsettings->{'LabelColorError'} = $result;}
-            elsif ($setting =~ /LabelOnOff/) {$labelsettings->{'LabelOnOff'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Easter/) {
-            if ($setting =~ /EasterEggSurprises/) {$settings->{'EasterEggSurprises'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Misc/) {
-            if ($setting =~ /MiscXplanetVersion1OrBetter/) {$settings->{'XplanetVersion'} = $result;}
-        }
-            
-        elsif ($setting =~ /^Cloud/) {
-            if ($setting =~ /CloudRemoteImageName/) {$cloudsettings->{'CloudRemoteImageName'} = $result;}
-            elsif ($setting =~ /CloudLocalImageName/) {$cloudsettings->{'CloudLocalImageName'} = $result;}
-            elsif ($setting =~ /UseFreeCloudImage/) {$cloudsettings->{'UseFreeCloudImage'} = $result;}
-            elsif ($setting =~ /SubcribedToXplanetClouds/) {$cloudsettings->{'SubcribedToXplanetClouds'} = $result;}
-            elsif ($setting =~ /CloudUsername/) {$cloudsettings->{'Username'} = $result;}
-            elsif ($setting =~ /CloudPassword/) {$cloudsettings->{'Password'} = $result;}
-            elsif ($setting =~ /DirectDownload/) {$cloudsettings->{'DirectDownload'} = $result;}
-        }
+
     }
-    
+    # Debugging all keys
+    print "Globals:432 Final cloudsettings keys after loop: ", join(", ", keys %$cloudsettings), "\n";
+
+    # Ensure MaxDownloadFrequencyHours is numeric and greater than 0
+    if (exists $cloudsettings->{'maxdownloadfrequencyhours'}) {
+        print "Globals: Checking maxdownloadfrequencyhours value: " . $cloudsettings->{'maxdownloadfrequencyhours'} . "\n";
+        unless ($cloudsettings->{'maxdownloadfrequencyhours'} =~ /^\d+$/ && $cloudsettings->{'maxdownloadfrequencyhours'} > 0) {
+            warn "Invalid maxdownloadfrequencyhours setting. Defaulting to 6.";
+            $cloudsettings->{'maxdownloadfrequencyhours'} = 6;
+        }
+    } else {
+        print "Globals: maxdownloadfrequencyhours not found. Defaulting to 6.\n";
+        $cloudsettings->{'maxdownloadfrequencyhours'} = 6;
+    }
+
     close MF;
 }
 

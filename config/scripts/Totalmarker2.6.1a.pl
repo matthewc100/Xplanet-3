@@ -35,7 +35,7 @@ use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scrip
 use Exporter 'import';
 #our @EXPORT_OK = qw(get_file);
 
-use Hurricane;
+use Storm;
 use Label;
 use CloudUpdate qw(
     cloud_update
@@ -1276,16 +1276,20 @@ else {
         my @hurricanedata;
         my @hurricanearcdatafor;
         my @hurricanearcdataact;
+
+        Storm::fetch_and_process_storms();
+        # $hurricane_record_number = 1;
         
-        $hurricane_record_number = Hurricane::get_hurricane_data_count();
-        Hurricane::WriteoutHurricane($hurricane_record_number);
+        # $hurricane_record_number = Hurricane::get_hurricane_data_count();
+        # Hurricane::WriteoutHurricane($hurricane_record_number);
         
-        my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_record_number);
-        Hurricane::WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
+        # my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_record_number);
+        # Hurricane::WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
     }
     
     if ($quake_on_off == 1) {
         Earthquake::get_quakedata();
+        $quake_record_number = 1;
     }
     
     if ($norad_on_off == 1) {    
@@ -1296,21 +1300,41 @@ else {
         
         # Call the process_satellites function to process the satellite data
         Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
+        $norad_record_number = 1;
     }
     
-if ($volcano_on_off == 1) {
-    # Check if the volcano data needs to be updated
-    if (VolcanoXML::check_volcano_data()) {
-        # Process the volcano data using VolcanoXML module
-        VolcanoXML::process_volcano_data();
+    if ($volcano_on_off == 1) {
+        # Check if the volcano data needs to be updated
+        if (VolcanoXML::check_volcano_data()) {
+            # Process the volcano data using VolcanoXML module
+            VolcanoXML::process_volcano_data();
+        }
+        $volcano_record_number = 1;
     }
-}
     
     if ($label_on_off == 1) {
+        # Routine label updates during regular operations
+        Label::WriteoutLabel(
+            $quake_record_number, 
+            $norad_record_number, 
+            $cloud_record_number, 
+            $hurricane_record_number, 
+            $volcano_record_number, 
+            0  # Routine update
+        );
         Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 0);
     }
     
     if ($update_label == 1) {
+        # Manual or forced label updates triggered by user input
+        Label::WriteoutLabel(
+            $quake_record_number, 
+            $norad_record_number, 
+            $cloud_record_number, 
+            $hurricane_record_number, 
+            $volcano_record_number, 
+            1  # Forced update
+        );
         Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 1);
     }
     

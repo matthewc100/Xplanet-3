@@ -1,0 +1,209 @@
+#
+#AF Africa 
+15.72 -2.3665 "Africa" align=Below color={158, 32, 40}
+15.72 -2.3665 "AF" align=Above color={158, 32, 40}
+#
+#AM Amur 
+44.035 123.649  "Amur" align=Below color={158, 32, 40}
+44.035 123.649  "AM" align=Above color={158, 32, 40}
+#
+#AN Antarctica 
+-80.907 40.383  "Antarctica" align=Below color={158, 32, 40}
+-80.907 40.383  "AN" align=Above color={158, 32, 40}
+#
+#AP Altiplano 
+-17.1565 -69.546 "Altiplano" align=Below color={158, 32, 40}
+-17.1565 -69.546 "AP" align=Above color={158, 32, 40}
+#
+#AR Arabia 
+25.3285 49.6425  "Arabia" align=Below color={158, 32, 40}
+25.3285 49.6425  "AR" align=Above color={158, 32, 40}
+#
+#AS Aegean Sea 
+37.177 25.0065 "Aegean Sea" align=Below color={158, 32, 40}
+37.177 25.0065 "AS" align=Above color={158, 32, 40}
+#
+#AT Anatolia 
+37.7245 33.209  "Anatolia" align=Below color={158, 32, 40}
+37.7245 33.209  "AT" align=Above color={158, 32, 40}
+#
+#AU Australia 
+-35.8715 140.12  "Australia" align=Below color={158, 32, 40}
+-35.8715 140.12  "AU" align=Above color={158, 32, 40}
+#
+#BH Birds Head 
+#-1.233 132.4705  "Birds Head" align=Below color={158, 32, 40}
+-1.233 132.4705  "BH" align=Above color={158, 32, 40}
+#
+#BR Balmoral Reef 
+#-15.0755 175.0585  "Balmoral Reef" align=Below color={158, 32, 40}
+-15.0755 175.0585  "BR" align=Above color={158, 32, 40}
+#
+#BS Banda Sea 
+#-4.0715 126.28 "Banda Sea" align=Below color={158, 32, 40}
+-4.0715 126.28 "BS" align=Above color={158, 32, 40}
+#
+#BU Burma 
+8.579 93.158 "Burma" align=Below color={158, 32, 40}
+8.579 93.158 "BU" align=Above color={158, 32, 40}
+#
+#CA Caribbean 
+14.531 -74.161  "Caribbean" align=Below color={158, 32, 40}
+14.531 -74.161  "CA" align=Above color={158, 32, 40}
+#
+#CL Caroline 
+3.343 140.8925  "Caroline" align=Below color={158, 32, 40}
+3.343 140.8925  "CL" align=Above color={158, 32, 40}
+#
+#CO Cocos 
+9.797 -94.196  "Cocos" align=Below color={158, 32, 40}
+9.797 -94.196  "CO" align=Above color={158, 32, 40}
+#
+#CR Conway Reef 
+#-19.52 174.7965  "Conway Reef" align=Below color={158, 32, 40}
+-19.52 174.7965  "CR" align=Above color={158, 32, 40}
+#
+#EA Easter 
+-24.466 -114.1015  "Easter" align=Below color={158, 32, 40}
+-24.466 -114.1015  "EA" align=Above color={158, 32, 40}
+#
+#EU Eurasia 
+54.623	18.38  "Eurasia" align=Below color={158, 32, 40}
+54.623	18.38  "EU" align=Above color={158, 32, 40}
+#
+#FT Futuna 
+#-14.795 -177.8815  "Futuna" align=Below color={158, 32, 40}
+-14.795 -177.8815  "FT" align=Above color={158, 32, 40}
+#
+#GP Galapagos 
+-26.746 -101.585  "Galapagos" align=Below color={158, 32, 40}
+-26.746 -101.585  "GP" align=Above color={158, 32, 40}
+#
+#IN India 
+13.8215 76.868  "India" align=Below color={158, 32, 40}
+13.8215 76.868 "IN" align=Above color={158, 32, 40}
+#
+#JF Juan de Fuca 
+45.9625 -127.908 "Juan de Fuca" align=Below color={158, 32, 40}
+45.9625 -127.908  "JF" align=Above color={158, 32, 40}
+#
+#JZ Juan Fernandez 
+-16.228	-107.348  "Juan Fernandez" align=Below color={158, 32, 40}
+-16.228	-107.348  "JZ" align=Above color={158, 32, 40}
+#
+#KE Kermadec 
+-35.0845 178.9045  "Kermadec" align=Below color={158, 32, 40}
+-35.0845 178.9045  "KE" align=Above color={158, 32, 40}
+#
+#MA Mariana 
+17.9425 146.0565  "Mariana" align=Below color={158, 32, 40}
+17.9425 146.0565  "MA" align=Above color={158, 32, 40}
+#
+#MN Manus 
+-3.475 150.559  "Manus" align=Below color={158, 32, 40}
+-3.475 150.559  "MN" align=Above color={158, 32, 40}
+#
+#MO Maoke 
+#-3.3585 137.882  "Maoke" align=Below color={158, 32, 40}
+-3.3585 137.882  "MO" align=Above color={158, 32, 40}
+#
+#MS Molucca Sea 
+-1.2235 123.458  "Molucca Sea" align=Below color={158, 32, 40}
+-1.2235 123.458  "MS" align=Above color={158, 32, 40}
+#
+#NA North America 
+50.6945 -90.243  "North America" align=Below color={158, 32, 40}
+50.6945 -90.243  "NA" align=Above color={158, 32, 40}
+#
+#NB North Bismarck 
+#-3.784 148.619  "North Bismarck" align=Below color={158, 32, 40}
+-3.784 148.619  "NB" align=Above color={158, 32, 40}
+#
+#ND North Andes 
+5.1175 -74.8065  "North Andes" align=Below color={158, 32, 40}
+5.1175 -74.8065  "ND" align=Above color={158, 32, 40}
+#
+#NH New Hebrides 
+-18.2945 170.1365  "New Hebrides" align=Below color={158, 32, 40}
+-18.2945 170.1365  "NH" align=Above color={158, 32, 40}
+#
+#NI Niuafo'ou 
+-10.656	85.64  "Niuafo'ou" align=Below color={158, 32, 40}
+-10.656	85.64  "NI" align=Above color={158, 32, 40}
+#
+#NZ Nazca 
+-19.173 -92.835  "Nazca" align=Below color={158, 32, 40}
+-19.173 -92.835  "NZ" align=Above color={158, 32, 40}
+#
+#OK Okhotsk 
+48.75 150.2585  "Okhotsk" align=Below color={158, 32, 40}
+48.75 150.2585  "OK" align=Above color={158, 32, 40}
+#
+#ON Okinawa 
+27.711 128.6995  "Okinawa" align=Below color={158, 32, 40}
+27.711 128.6995  "ON" align=Above color={158, 32, 40}
+#
+#PA Pacific 
+20.849 160.076 "Pacific" align=Below color={158, 32, 40}
+20.849 160.076  "PA" align=Above color={158, 32, 40}
+#
+#PM Panama 
+8.8015 -81.666  "Panama" align=Below color={158, 32, 40}
+8.8015 -81.666  "PM" align=Above color={158, 32, 40}
+#
+#PS Philippine Sea 
+17.5255 132.0655  "Philippine Sea" align=Below color={158, 32, 40}
+17.5255 132.0655  "PS" align=Above color={158, 32, 40}
+#
+#RI Rivera 
+19.893 -107.3485 "Rivera" align=Below color={158, 32, 40}
+19.893 -107.3485  "RI" align=Above color={158, 32, 40}
+#
+#SA South America 
+-30.678	-41.224  "South America" align=Below color={158, 32, 40}
+-30.678	-41.224  "SA" align=Above color={158, 32, 40}
+#
+#SB South Bismarck 
+-5.515	151.259	  "South Bismarck" align=Below color={158, 32, 40}
+-5.515	151.259	  "SB" align=Above color={158, 32, 40}
+#
+#SC Scotia 
+-56.789 -52.09 "Scotia" align=Below color={158, 32, 40}
+-56.789 -52.09 "SC" align=Above color={158, 32, 40}
+#
+#SL Shetland 
+-61.929 -59.135  "Shetland" align=Below color={158, 32, 40}
+-61.929 -59.135  "SL" align=Above color={158, 32, 40}
+#
+#SO Somalia 
+-08.197	48.342 "Somalia" align=Below color={158, 32, 40}
+-08.197	48.342 "SO" align=Above color={158, 32, 40}
+#
+#SS Solomon Sea 
+#-7.413 152.0205  "Solomon Sea" align=Below color={158, 32, 40}
+-7.413 152.0205  "SS" align=Above color={158, 32, 40}
+#
+#SU Sunda 
+5.3725 111.616 "Sunda" align=Below color={158, 32, 40}
+5.3725 111.616 "SU" align=Above color={158, 32, 40}
+#
+#SW Sandwich 
+-57.811 -27.281  "Sandwich" align=Below color={158, 32, 40}
+-57.811 -27.281  "SW" align=Above color={158, 32, 40}
+#
+#TI Timor 
+#-8.9135 126.616  "Timor" align=Below color={158, 32, 40}
+-8.9135 126.616  "TI" align=Above color={158, 32, 40}
+#
+#TO Tonga 
+-19.3195 -174.8595  "Tonga" align=Below color={158, 32, 40}
+-19.3195 -174.8595  "TO" align=Above color={158, 32, 40}
+#
+#WL Woodlark 
+-5.7785 147.6105 "Woodlark" align=Below color={158, 32, 40}
+-5.7785 147.6105 "WL" align=Above color={158, 32, 40}
+#
+#YA Yangtze 
+26.646 117.192  "Yangtze" align=Below color={158, 32, 40}
+26.646 117.192  "YA" align=Above color={158, 32, 40}
+

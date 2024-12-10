@@ -2,10 +2,11 @@ package CloudUpdate;
 use strict;
 use warnings;
 use LWP::UserAgent;
+use Time::Local; 
 use HTTP::Request::Common;
 use Config::Simple;  # Load the Config::Simple module
 
-use Globals qw($xplanet_images_dir);
+use Globals qw($xplanet_images_dir $cloudsettings $label_file);
 use Exporter 'import';
 our @EXPORT_OK = qw(cloud_update); # is this line needed?  
 
@@ -43,60 +44,30 @@ my $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
 # my $cloud_image_base = "https://xplanetclouds.com/free/coral/";
 #
 
-
-# CLOUD MIRRORS
-my $cloudsettings = {
-    'CloudMirrorA' => 'http://example.com/mirrorA',
-    'CloudMirrorB' => 'http://example.com/mirrorB',
-    'CloudMirrorC' => 'http://example.com/mirrorC',
-    'CloudMirrorD' => 'http://example.com/mirrorD',
-    'CloudMirrorE' => 'http://example.com/mirrorE',
-    'CloudMirrorF' => 'http://example.com/mirrorF',
-    'CloudMirrorG' => 'http://example.com/mirrorG',
-    'CloudMirrorH' => 'http://example.com/mirrorH',
-    'CloudMirrorI' => 'http://example.com/mirrorI',
-    'CloudMirrorJ' => 'http://example.com/mirrorJ',
-    'CloudMirrorK' => 'http://example.com/mirrorK',
-    'CloudMirrorL' => 'http://example.com/mirrorL',
-    'CloudMirrorM' => 'http://example.com/mirrorM',
-    'CloudMirrorN' => 'http://example.com/mirrorN'
-};
-# Returns the name of an internet resource which can provide the clouds image
-sub GetRandomMirror() {
-    # Populate a list of mirrors
-    my @Mirrors;
-    if (my $cloudsettings->{'CloudMirrorA'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorA'}";}
-    if (my $cloudsettings->{'CloudMirrorB'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorB'}";}
-    if (my $cloudsettings->{'CloudMirrorC'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorC'}";}
-    if (my $cloudsettings->{'CloudMirrorD'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorD'}";}
-    if (my $cloudsettings->{'CloudMirrorE'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorE'}";}
-    if (my $cloudsettings->{'CloudMirrorF'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorF'}";}
-    if (my $cloudsettings->{'CloudMirrorG'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorG'}";}
-    if (my $cloudsettings->{'CloudMirrorH'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorH'}";}
-    if (my $cloudsettings->{'CloudMirrorI'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorI'}";}
-    if (my $cloudsettings->{'CloudMirrorJ'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorJ'}";}
-    if (my $cloudsettings->{'CloudMirrorK'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorK'}";}
-    if (my $cloudsettings->{'CloudMirrorL'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorL'}";}
-    if (my $cloudsettings->{'CloudMirrorM'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorM'}";}
-    if (my $cloudsettings->{'CloudMirrorN'} =~ /\w/) {push @Mirrors, "$cloudsettings->{'CloudMirrorN'}";}
-    
-    # Return one at random
-    return $Mirrors[rand scalar(@Mirrors)];
-}
-
 sub cloud_update {
-    # my ($url, $file_path) = @_;
-    # use the global $xplanet_images_dir value from Globals.pm
-
-# Read credentials from a configuration file
+    # Read credentials from the configuration file
     my $cfg = Config::Simple->new('CloudMap.cfg');
     my $username = $cfg->param('username');
     my $password = $cfg->param('password');
     my $url = $cfg->param('site_link');
     my $file_path = $cfg->param('dest_file_name');
 
+    my $MaxDownloadFrequencyHours = $cloudsettings->{'MaxDownloadFrequencyHours'} // 6; # Default to 6 hours if not defined
+    if (!defined $MaxDownloadFrequencyHours) {
+        warn "MaxDownloadFrequencyHours is undefined. Check configuration or initialization.";
+    }
+    print "CloudUpdate:59 MaxDownloadFrequencyHours = $MaxDownloadFrequencyHours\n";
+    # Step 1: Check if we need to update the cloud map
+    if (!should_update_cloud_map($MaxDownloadFrequencyHours)) {
+        print "Skipping cloud map update: too frequent\n";
+        return;
+    }
+
     # Ensure credentials are set
     die "Username and password must be provided" unless $username && $password;
+
+    # Step 2: Proceed with downloading the cloud map
+    print "Downloading cloud map...\n";
 
     # Create a user agent object
     my $ua = LWP::UserAgent->new;
@@ -112,13 +83,71 @@ sub cloud_update {
     if ($response->is_success) {
         # Open the file for writing in binary mode
         open my $fh, '>:raw', "$xplanet_images_dir\\$file_path" or die "Could not open file '$xplanet_images_dir\\$file_path': $!";
-        print $fh $response->content; # Use content instead of decoded_content for binary data
+        print $fh $response->content; # Use content for binary data
         close $fh;
         print "Cloud image downloaded successfully to $xplanet_images_dir as $file_path\n";
-#        print "  Updated cloud image as $xplanet_images_dir\\$file_path \n";
     } else {
         die "Failed to download file: " . $response->status_line;
     }
+}
+
+# Subroutine to check if we should update the cloud map
+sub should_update_cloud_map {
+     my ($MaxDownloadFrequencyHours) = @_;
+
+    # Check the last update time for Cloud in updatelabel
+    my $last_update_time = get_last_update_time("Cloud");
+
+    # If the data is recent enough, skip the update
+    if (defined $last_update_time) {
+        my $current_time = time();
+        my $elapsed_time = $current_time - $last_update_time;
+        if (!defined $MaxDownloadFrequencyHours) {
+            warn "MaxDownloadFrequencyHours is undefined. Check configuration or initialization.";
+        }
+        if ($elapsed_time < $MaxDownloadFrequencyHours * 3600) {
+            print "Cloud data is up to date (last updated: " . localtime($last_update_time) . ")\n";
+            return 0; # No update needed
+        }
+    }
+
+    # If no recent data or outdated, return true to update
+    return 1;
+}
+
+# Subroutine to get the last update time for a type from the label file
+sub get_last_update_time {
+    my ($type) = @_;
+    return undef unless -e $label_file;
+
+    open(my $fh, '<', $label_file) or die "Cannot open $label_file: $!";
+    while (<$fh>) {
+        if (/\b$type\b.*last updated.*?(\d{2}-\w{3}-\d{4} \d{2}:\d{2})/) {
+            my $timestamp_str = $1;
+            close $fh;
+
+            # Convert the timestamp to epoch time
+            my $epoch_time = convert_to_epoch($timestamp_str);
+            return $epoch_time;
+        }
+    }
+    close($fh);
+    return undef;
+}
+
+# Helper to convert a timestamp string to epoch time
+sub convert_to_epoch {
+    my ($timestamp_str) = @_;
+    if ($timestamp_str =~ /(\d{2})-(\w{3})-(\d{4}) (\d{2}):(\d{2})/) {
+        my ($day, $mon_str, $year, $hour, $min) = ($1, $2, $3, $4, $5);
+        my %months = (
+            Jan => 0,  Feb => 1,  Mar => 2,  Apr => 3,  May => 4,  Jun => 5,
+            Jul => 6,  Aug => 7,  Sep => 8,  Oct => 9,  Nov => 10, Dec => 11
+        );
+        my $mon = $months{$mon_str};
+        return timelocal(0, $min, $hour, $day, $mon, $year - 1900);
+    }
+    return undef;
 }
 
 1; # End of the module

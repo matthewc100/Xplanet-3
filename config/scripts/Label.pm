@@ -26,7 +26,7 @@ sub WriteoutLabel {
     # Invocation parameters control which types to process
     my ($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label) = @_;
 
-    # Define the types and their invocation flags
+    # Declare and initialize the types and their invocation flags
     my %types_to_check = (
         "Earthquake" => $update_earth,
         "NORAD"      => $update_norad,
@@ -35,7 +35,7 @@ sub WriteoutLabel {
         "Volcano"    => $update_volcano,
     );
 
-    # Define positions for each type (local to WriteoutLabel)
+    # Declare and initialize positions for each type
     my %type_positions = (
         "Earthquake" => [-68, -13],
         "NORAD"      => [-83, -13],
@@ -44,12 +44,21 @@ sub WriteoutLabel {
         "Volcano"    => [-128, -13],
     );
 
-    # Track found data for each type
+    # Declare and initialize colors for status levels
+    my %type_colors = (
+        "OK"    => $labelsettings->{'LabelColorOk'},
+        "Warn"  => $labelsettings->{'LabelColorWarn'},
+        "Error" => $labelsettings->{'LabelColorError'},
+    );
+
+    # Declare and initialize the found data tracker
     my %found_data = map { $_ => 0 } keys %types_to_check;
-    my $formatted_time = get_current_time();  # Get current timestamp for "not found" messages
+
+    # Get current timestamp for "not found" messages
+    my $formatted_time = get_current_time();
 
     # Step 1: Read existing entries into a hash, keyed by type
-    my %current_entries;
+    my %current_entries;  # Declare to store lines from updatelabel
     if (-e $label_file) {
         open(my $read_fh, '<', $label_file) or die "Cannot open $label_file for reading: $!";
         while (<$read_fh>) {
@@ -65,52 +74,114 @@ sub WriteoutLabel {
         close($read_fh);
     }
 
-    # Step 2: Update or add entries based on invocation flags and data
+    # Step 2: Process updates or mark as not found
     foreach my $type (keys %types_to_check) {
-        next unless $types_to_check{$type};  # Only process types with flags set to 1
-        if ($current_entries{$type}) {
-            # Process the line if found in existing entries
-            print "Updating existing data for $type...\n";
-            $current_entries{$type} = process_data_for_type($type, \%type_positions);  # Pass %type_positions to subroutine
+        next unless $types_to_check{$type};  # Skip types not flagged for processing
+
+        if (exists $current_entries{$type}) {
+            # Update existing data
+            $current_entries{$type} = process_data_for_type($type, \%type_positions);
             $found_data{$type} = 1;
         } else {
-            # Mark as missing if type not found in current entries
+            # Mark as missing
             $found_data{$type} = 0;
         }
     }
 
-    # Step 3: Write header and updated data to the file
+    # Step 3: Write the header and sorted data to the marker file
     open(my $write_fh, '>', $label_file) or die "Cannot open $label_file for writing: $!";
-    file_header('UpdateLabel', $write_fh);  # Write header
+    file_header('UpdateLabel', $write_fh);  
 
-    # Output updated data or missing messages
+    # Collect all lines into an array for sorting
+    my @lines;
+
+    # Initialize an array to store all lines for sorting
     foreach my $type (keys %types_to_check) {
+        
+        # Case 1: The type has been processed and data is found
         if ($found_data{$type} && $current_entries{$type}) {
-            print $write_fh "$current_entries{$type}\n";  # Write the updated line
+
+            # Extract the x-position (first numeric value in the line)
+            my ($x_pos) = ($current_entries{$type} =~ /^(-?\d+\.?\d*)\s/);
+            $x_pos //= 0;  # Default to 0 if x_pos extraction fails to ensure sorting works 
+
+            # Push the entry (x_pos and the full line) into @lines for later sorting
+            push @lines, { x_pos => $x_pos, line => $current_entries{$type} };  
+
+        # Case 2: The type has been processed but no data was found
         } elsif ($types_to_check{$type} && !$found_data{$type}) {
-            # Output "not found" message if data is missing
-            my ($Yco, $Xco) = @{$type_positions{$type}};
-            output_missing_message($write_fh, $type, $formatted_time, $Yco, $Xco);
+            my ($Yco, $Xco) = @{$type_positions{$type}};  # Get predefined coordinates for the type 
+
+            # Construct a "not found" message for this type
+            my $not_found_line = "$Yco $Xco \"$type information not found\" $formatted_time color=$type_colors{'Error'} image=none position=pixel";
+
+            # Push the "not found" message into @lines, using $Xco as the x-position
+            push @lines, { x_pos => $Xco, line => $not_found_line };    
+
+        # Case 3: The type is not processed in this run, but we retain the existing entry
+        } else {
+            if (exists $current_entries{$type}) {  # Check if an existing entry for this type is present
+
+                # Extract the x-position (first numeric value in the line)
+                my ($x_pos) = ($current_entries{$type} =~ /^(-?\d+\.?\d*)\s/);
+                $x_pos //= 0;  # Default to 0 if extraction fails   
+
+                # Push the retained entry into @lines for sorting
+                push @lines, { x_pos => $x_pos, line => $current_entries{$type} };
+            }
         }
-    }
+    }  
+
+    # Sort lines by x-position in descending order
+    @lines = sort {
+        $b->{x_pos} <=> $a->{x_pos}  # Sort numerically in descending order
+    } @lines;   
+
+    # Write sorted lines to the file
+    foreach my $entry (@lines) {
+        if (defined $entry->{line}) {
+            print $write_fh $entry->{line} . "\n";
+        } else {
+            print "Warning: Skipped entry with undefined line\n";
+        }
+    }   
+
     close($write_fh);
 }
 
 # Subroutine to process data for a specific type and return formatted string
 sub process_data_for_type {
-    my ($type, $type_positions) = @_;  # Receive %type_positions as a reference
+    my ($type, $type_positions) = @_;                              # Receive %type_positions as a reference
 
     # Example position and color assignments, replace with actual data processing as needed
     my ($Yco, $Xco) = @{$type_positions->{$type}};
-    my $color = "Green";  # Assume the color is determined dynamically
+    my $color = "Green";                                           # Assume the color is determined dynamically
     my $formatted_time = get_current_time();
     return "$Yco $Xco \"$type information last updated\" $formatted_time color=$color image=none position=pixel";
 }
 
+# Subroutine to evaluate the status of a type and generate the appropriate line
+sub evaluate_type_status {
+    my ($type, $type_positions, $type_colors) = @_;
+
+    # Example logic: Decide OK, Warn, or Error based on arbitrary conditions
+    my ($Yco, $Xco) = @{$type_positions->{$type}};
+    my $formatted_time = get_current_time();
+
+    # Simulated evaluation (replace with actual logic)
+    my $status = "OK";  # Replace with real status evaluation
+    my $color  = $type_colors->{$status};
+
+    return "$Yco $Xco \"$type information last updated\" $formatted_time color=$color image=none position=pixel";
+}
+
 # Subroutine to output a "not found" message at specified coordinates for missing data
-sub output_missing_message {
-    my ($fh, $type, $formatted_time, $Yco, $Xco) = @_;
-    print $fh "$Yco $Xco \"$type information not found\" $formatted_time color=Red image=none position=pixel\n";
+sub generate_not_found_message {
+    my ($type, $type_positions, $type_colors, $formatted_time) = @_;
+    my ($Yco, $Xco) = @{$type_positions->{$type}};
+    my $color = $type_colors->{'Error'};                        # Use the "Error" color for "not found" messages
+
+    return "$Yco $Xco \"$type information not found\" $formatted_time color=$color image=none position=pixel";
 }
 
 # Helper to get the current timestamp for output messages
@@ -126,80 +197,101 @@ sub process_update {
         $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
         $monthlet, $yeartime, $colour, $image, $position, $warning_length, $wday) = @_;
 
-    print "Processing update for type: $type, Status: $update_status\n";
+    # Remove the last character from the timestamp to clean up formatting
+    substr($yeartime, -1, 1, "");  
 
-    print $fh "$Yco $Xco \"$text1 Information Last Updated";
-    substr($yeartime, -1, 1, "");  # Replace the last character with an empty string
-
+    # Case 1: Update failed, and the current color is OK
     if ($update_status eq 'FAILED' && $colour =~ /$ok_color/) {
+        # Downgrade to a warning status
         print $fh " $weekday $monthday $monthlet $yeartime\" color=$warn_color";
+
+    # Case 2: Update failed, and the current color is Warning
     } elsif ($update_status eq 'FAILED' && $colour =~ /$warn_color/) {
-        my $mon = num_of_month($monthlet);
+        
+        # Convert timestamp to epoch time for comparison
+        my $mon = num_of_month($monthlet);                      # Convert month name to numeric
         chomp $yeartime;
         my ($year_part, $min, $sec) = split(":", $yeartime, 3);
         my ($year, $hour) = split(",", $year_part, 2);
-        $year -= 1900;
-        my $time_state = timelocal($sec, $min, $hour, $monthday, $mon, $year);
-        my $time_difference = time() - $time_state;  # Replace $time_now with current time
 
+        $year -= 1900;                                          # Convert to Perl's epoch format
+
+        my $time_state = timelocal($sec, $min, $hour, $monthday, $mon, $year);
+        my $time_difference = time() - $time_state;             # Time elapsed since last update
+
+        # Determine whether to keep as warning or downgrade to failed
         if ($time_difference < $warning_length->[0]->{$type}) {
             print $fh " $weekday $monthday $monthlet $yeartime\" color=$warn_color";
         } else {
             print $fh " $weekday $monthday $monthlet $yeartime\" color=$failed_color";
         }
+
+    # Case 3: Update failed, and the status is already Failed
     } elsif ($update_status eq 'FAILED') {
+        
+        # Keep as failed
         print $fh " $weekday $monthday $monthlet $yeartime\" color=$failed_color";
+
+    # Case 4: Update succeeded
     } else {
+        
+        # Generate a new timestamp for the update
         my ($sec, $min, $hour, $mday, $mon, $current_year) = localtime();
-        $current_year += 1900;
-        my $thisday = (qw(Sun Mon Tue Wed Thu Fri Sat))[$wday];
-        my $thismonth = (qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec))[$mon];
+
+        $current_year += 1900;                                   # Adjust year to full format
+
+        my $thisday = (qw(Sun Mon Tue Wed Thu Fri Sat))[$wday];  # Day of the week
+        my $thismonth = (qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec))[$mon];  # Month name
         printf $fh " $thisday $mday $thismonth $current_year,%02d:%02d:%02d\" color=$ok_color", $hour, $min, $sec;
     }
+
+    # Write image and position data for the label
     print $fh " image=none position=pixel\n";
 }
+
 
 sub process_last_update {
     my ($fh, $warning_length, $ok_color, $warn_color, $failed_color, 
         $time_now, $Yco, $Xco, $text1, $text2, $text3, $text4, 
         $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position) = @_;
 
+    # Convert the timestamp to epoch time
     my $mon = num_of_month($monthlet);
     chomp $yeartime;
     my ($year_part, $min, $sec) = split(":", $yeartime, 3);
     my ($year, $hour) = split(",", $year_part, 2);
-    $year -= 1900;
-    my $time_state = timelocal($sec, $min, $hour, $monthday, $mon, $year);
-    my $time_difference = $time_now - $time_state;
 
+    $year -= 1900;  # Adjust year for Perl's epoch format
+
+    my $time_state = timelocal($sec, $min, $hour, $monthday, $mon, $year);
+    my $time_difference = $time_now - $time_state;  # Time difference in seconds
+
+    # Call update_time_status based on the type in $text1
     if ($text1 =~ /Earthquake/) {
         update_time_status($fh, 'quake', $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
-                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
-                           $monthlet, $yeartime, $colour, $image, $position);
+                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position);
     } elsif ($text1 =~ /Cloud/) {
         update_time_status($fh, 'cloud', $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
-                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
-                           $monthlet, $yeartime, $colour, $image, $position);
+                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position);
     } elsif ($text1 =~ /NORAD/) {
         update_time_status($fh, 'norad', $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
-                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
-                           $monthlet, $yeartime, $colour, $image, $position);
+                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position);
     } elsif ($text1 =~ /Storm/) {
         update_time_status($fh, 'hurricane', $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
-                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
-                           $monthlet, $yeartime, $colour, $image, $position);
+                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position);
     } elsif ($text1 =~ /Volcano/) {
         update_time_status($fh, 'volcano', $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
-                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
-                           $monthlet, $yeartime, $colour, $image, $position);
+                           $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, $monthlet, $yeartime, $colour, $image, $position);
     }
 }
+
 
 sub update_time_status {
     my ($fh, $type, $time_difference, $warning_length, $ok_color, $warn_color, $failed_color, 
         $Yco, $Xco, $text1, $text2, $text3, $text4, $weekday, $monthday, 
         $monthlet, $yeartime, $colour, $image, $position) = @_;
 
+    # Write the base information to the file
     print $fh "$Yco $Xco \"$text1\" ";
     print $fh "$text2 ";
     print $fh "$text3 ";
@@ -208,16 +300,20 @@ sub update_time_status {
     print $fh "$monthday ";
     print $fh "$monthlet ";
     print $fh "$yeartime\" ";
-    
+
+    # Determine the color based on the time difference
     if ($time_difference < $warning_length->{$type}) {
-        print $fh "color=$ok_color";
+        print $fh "color=$ok_color";  # Status is OK
     } elsif ($time_difference < $warning_length->{"${type}error"}) {
-        print $fh "color=$warn_color";
+        print $fh "color=$warn_color";  # Status is Warning
     } else {
-        print $fh "color=$failed_color";
+        print $fh "color=$failed_color";  # Status is Failed
     }
+
+    # Write additional properties
     print $fh " image=$image position=$position\n";
 }
+
 
 sub num_of_month {
     my ($month) = @_;
@@ -239,7 +335,7 @@ sub file_header {
 
     # Get the current date and time
     my ($sec, $min, $hour, $mday, $mon, $year) = localtime();
-    $year += 1900;  # Adjust year
+    $year += 1900;
     my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
     my $formatted_date = sprintf("%02d-%s-%04d %02d:%02d", $mday, $months[$mon], $year, $hour, $min);
 
