@@ -1,65 +1,77 @@
 # This is the header for C:\Users\mcoblent\OneDrive\Xplanet\Xplanet-1.3.0\Xplanet-3\markers\volcano
 # Original idea by Michael Dear
 # Revamped by Matt Coblentz October 2024
-# Updated 09-Dec-2024 09:32
+# Updated 16-Dec-2024 14:31
 # 
- -16.25   168.12 "" color=Yellow symbolsize=4
- -16.25   168.12 "" color=Red symbolsize=8
- -16.25   168.12 "Ambrym" color=Brown symbolsize=12 align=Below
-  -4.02   103.12 "" color=Yellow symbolsize=4
-  -4.02   103.12 "" color=Red symbolsize=8
-  -4.02   103.12 "Dempo" color=Brown symbolsize=12 align=Below
-  -8.54   122.78 "" color=Yellow symbolsize=4
-  -8.54   122.78 "" color=Red symbolsize=8
-  -8.54   122.78 "Lewotobi" color=Brown symbolsize=12 align=Below
-  63.82   -22.72 "" color=Yellow symbolsize=4
-  63.82   -22.72 "" color=Red symbolsize=8
-  63.82   -22.72 "Reykjanes" color=Brown symbolsize=12 align=Below
-  56.65   161.36 "" color=Yellow symbolsize=4
-  56.65   161.36 "" color=Red symbolsize=8
-  56.65   161.36 "Sheveluch" color=Brown symbolsize=12 align=Below
-  -5.05   151.33 "" color=Yellow symbolsize=4
-  -5.05   151.33 "" color=Red symbolsize=8
-  -5.05   151.33 "Ulawun" color=Brown symbolsize=12 align=Below
-  31.58   130.66 "" color=Yellow symbolsize=4
-  31.58   130.66 "" color=Red symbolsize=8
-  31.58   130.66 "Aira" color=Brown symbolsize=12 align=Below
-  -4.52   129.88 "" color=Yellow symbolsize=4
-  -4.52   129.88 "" color=Red symbolsize=8
-  -4.52   129.88 "Banda Api" color=Brown symbolsize=12 align=Below
-   1.70   127.88 "" color=Yellow symbolsize=4
-   1.70   127.88 "" color=Red symbolsize=8
-   1.70   127.88 "Dukono" color=Brown symbolsize=12 align=Below
-  50.69   156.01 "" color=Yellow symbolsize=4
-  50.69   156.01 "" color=Red symbolsize=8
-  50.69   156.01 "Ebeko" color=Brown symbolsize=12 align=Below
-  52.08  -176.13 "" color=Yellow symbolsize=4
-  52.08  -176.13 "" color=Red symbolsize=8
-  52.08  -176.13 "Great Sitkin" color=Brown symbolsize=12 align=Below
-   1.49   127.63 "" color=Yellow symbolsize=4
-   1.49   127.63 "" color=Red symbolsize=8
-   1.49   127.63 "Ibu" color=Brown symbolsize=12 align=Below
-  10.41   123.13 "" color=Yellow symbolsize=4
-  10.41   123.13 "" color=Red symbolsize=8
-  10.41   123.13 "Kanlaon" color=Brown symbolsize=12 align=Below
-  54.05   159.44 "" color=Yellow symbolsize=4
-  54.05   159.44 "" color=Red symbolsize=8
-  54.05   159.44 "Karymsky" color=Brown symbolsize=12 align=Below
-  30.44   130.22 "" color=Yellow symbolsize=4
-  30.44   130.22 "" color=Red symbolsize=8
-  30.44   130.22 "Kuchinoerabujima" color=Brown symbolsize=12 align=Below
-  -4.08   145.04 "" color=Yellow symbolsize=4
-  -4.08   145.04 "" color=Red symbolsize=8
-  -4.08   145.04 "Manam" color=Brown symbolsize=12 align=Below
-  -7.54   110.45 "" color=Yellow symbolsize=4
-  -7.54   110.45 "" color=Red symbolsize=8
-  -7.54   110.45 "Merapi" color=Brown symbolsize=12 align=Below
-   4.89   -75.32 "" color=Yellow symbolsize=4
-   4.89   -75.32 "" color=Red symbolsize=8
-   4.89   -75.32 "Nevado del Ruiz" color=Brown symbolsize=12 align=Below
-  -8.11   112.92 "" color=Yellow symbolsize=4
-  -8.11   112.92 "" color=Red symbolsize=8
-  -8.11   112.92 "Semeru" color=Brown symbolsize=12 align=Below
-  29.64   129.71 "" color=Yellow symbolsize=4
-  29.64   129.71 "" color=Red symbolsize=8
-  29.64   129.71 "Suwanosejima" color=Brown symbolsize=12 align=Below
+  20.42   145.03 "" color= symbolsize=
+  20.42   145.03 "" color= symbolsize=
+  20.42   145.03 "Ahyi" color= symbolsize= align=
+  -4.02   103.12 "" color= symbolsize=
+  -4.02   103.12 "" color= symbolsize=
+  -4.02   103.12 "Dempo" color= symbolsize= align=
+   1.70   127.88 "" color= symbolsize=
+   1.70   127.88 "" color= symbolsize=
+   1.70   127.88 "Dukono" color= symbolsize= align=
+   1.49   127.63 "" color= symbolsize=
+   1.49   127.63 "" color= symbolsize=
+   1.49   127.63 "Ibu" color= symbolsize= align=
+  10.41   123.13 "" color= symbolsize=
+  10.41   123.13 "" color= symbolsize=
+  10.41   123.13 "Kanlaon" color= symbolsize= align=
+  30.44   130.22 "" color= symbolsize=
+  30.44   130.22 "" color= symbolsize=
+  30.44   130.22 "Kuchinoerabujima" color= symbolsize= align=
+  63.82   -22.72 "" color= symbolsize=
+  63.82   -22.72 "" color= symbolsize=
+  63.82   -22.72 "Reykjanes" color= symbolsize= align=
+ -37.86   -71.18 "" color= symbolsize=
+ -37.86   -71.18 "" color= symbolsize=
+ -37.86   -71.18 "Copahue" color= symbolsize= align=
+  50.69   156.01 "" color= symbolsize=
+  50.69   156.01 "" color= symbolsize=
+  50.69   156.01 "Ebeko" color= symbolsize= align=
+  52.08  -176.13 "" color= symbolsize=
+  52.08  -176.13 "" color= symbolsize=
+  52.08  -176.13 "Great Sitkin" color= symbolsize= align=
+  54.05   159.44 "" color= symbolsize=
+  54.05   159.44 "" color= symbolsize=
+  54.05   159.44 "Karymsky" color= symbolsize= align=
+  -8.54   122.78 "" color= symbolsize=
+  -8.54   122.78 "" color= symbolsize=
+  -8.54   122.78 "Lewotobi" color= symbolsize= align=
+  -4.08   145.04 "" color= symbolsize=
+  -4.08   145.04 "" color= symbolsize=
+  -4.08   145.04 "Manam" color= symbolsize= align=
+  -7.54   110.45 "" color= symbolsize=
+  -7.54   110.45 "" color= symbolsize=
+  -7.54   110.45 "Merapi" color= symbolsize= align=
+   4.89   -75.32 "" color= symbolsize=
+   4.89   -75.32 "" color= symbolsize=
+   4.89   -75.32 "Nevado del Ruiz" color= symbolsize= align=
+  -1.41    29.20 "" color= symbolsize=
+  -1.41    29.20 "" color= symbolsize=
+  -1.41    29.20 "Nyamulagira" color= symbolsize= align=
+  -0.08   -77.66 "" color= symbolsize=
+  -0.08   -77.66 "" color= symbolsize=
+  -0.08   -77.66 "Reventador" color= symbolsize= align=
+ -15.79   -71.86 "" color= symbolsize=
+ -15.79   -71.86 "" color= symbolsize=
+ -15.79   -71.86 "Sabancaya" color= symbolsize= align=
+  -2.00   -78.34 "" color= symbolsize=
+  -2.00   -78.34 "" color= symbolsize=
+  -2.00   -78.34 "Sangay" color= symbolsize= align=
+  -8.11   112.92 "" color= symbolsize=
+  -8.11   112.92 "" color= symbolsize=
+  -8.11   112.92 "Semeru" color= symbolsize= align=
+  56.65   161.36 "" color= symbolsize=
+  56.65   161.36 "" color= symbolsize=
+  56.65   161.36 "Sheveluch" color= symbolsize= align=
+  38.79    15.21 "" color= symbolsize=
+  38.79    15.21 "" color= symbolsize=
+  38.79    15.21 "Stromboli" color= symbolsize= align=
+  29.64   129.71 "" color= symbolsize=
+  29.64   129.71 "" color= symbolsize=
+  29.64   129.71 "Suwanosejima" color= symbolsize= align=
+  14.01   121.00 "" color= symbolsize=
+  14.01   121.00 "" color= symbolsize=
+  14.01   121.00 "Taal" color= symbolsize= align=

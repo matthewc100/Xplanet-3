@@ -193,7 +193,7 @@ our $xplanet_dir = $ENV{'XPLANET_DIR'} || "C:\\Users\\mcoblent\\onedrive\\xplane
 Globals::set_xplanet_dir($xplanet_dir);
 
 # Call the subroutine to initialize directory and file paths
-Globals::get_ini_settings();
+Globals::get_directory_settings();
 #
 # Test that locations exist and can be written to.
 #
@@ -1242,20 +1242,20 @@ my @settings;
 
 Globals::get_settings;
 if ($eclipseoverride eq 1) {
-    $settings->{'EclipseOnOff'} = 'Off';
+    $settings->{'eclipseonoff'} = 'Off';
 }
 
-if ($labelsettings->{'LabelOnOff'} =~ /On/) {
+if ($labelsettings->{'labelonoff'} =~ /On/) {
     $label_on_off = 1;
 }
 else {$label_on_off = 0;}
 
-if ($settings->{'EclipseOnOff'} =~ /On/) {
+if ($settings->{'eclipseonoff'} =~ /On/) {
     $eclipse_on_off = 1;
 }
 else {$eclipse_on_off = 0;}
 
-if ($settings->{'EasterEggSurprises'} =~ /Off/) {
+if ($settings->{'eastereggsurprises'} =~ /Off/) {
     $EasterEgg_on_off = 0;
 }
 else {$EasterEgg_on_off = 1;}

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-Globals::get_ini_settings();  # Ensure settings are loaded
+Globals::get_directory_settings();  # Ensure settings are loaded
 
 our @EXPORT_OK = qw(
     $settings
@@ -93,23 +93,6 @@ our (
     @eclipserefined
 );
 
-# $volcanosettings = {
-#     'VolcanoCircleColorInner' => 'Red',
-#     'VolcanoCircleSizeInner' => 3,
-#     'VolcanoCircleColorMiddle' => 'Yellow',
-#     'VolcanoCircleSizeMiddle' => 5,
-#     'VolcanoNameOnOff' => 'On',
-#     'VolcanoImageList' => '',
-#     'VolcanoImageTransparent' => '',
-#     'VolcanoCircleColorOuter' => 'Blue',
-#     'VolcanoCircleSizeOuter' => 7,
-#     'VolcanoNameAlign' => 'Left',
-#     'VolcanoNameColor' => 'Black',
-#     'VolcanoDetailList' => '<name> - <location>',
-#     'VolcanoDetailColor' => 'White',
-#     'VolcanoDetailAlign' => 'Right'
-# };
-
 #################################################
 #  CONFIGURATION SECTION                        #
 #################################################
@@ -137,7 +120,7 @@ sub set_xplanet_dir {
     $xplanet_dir = $value;
 }
 
-sub get_ini_settings {
+sub get_directory_settings {
     my $settings_ini_file = "$ENV{'XPLANET_DIR'}\\config\\totalmarker.ini";
     open (MF, "<$settings_ini_file") or die "Could not open settings file: $!";
     
@@ -168,7 +151,6 @@ sub get_ini_settings {
             my $normalized_key = lc($setting);  # Normalize key to lowercase
             if ($normalized_key eq 'xplanet_dir') {
                 $xplanet_dir = $value;  # Set the installation directory
-                print "Globals:325 Debug: xplanet_dir set to $xplanet_dir\n";
                 update_directories();  # Update directory paths based on the root
             }
         }
@@ -382,21 +364,6 @@ sub get_settings {
         }
 
     }
-    # Debugging all keys
-    print "Globals:432 Final cloudsettings keys after loop: ", join(", ", keys %$cloudsettings), "\n";
-
-    # Ensure MaxDownloadFrequencyHours is numeric and greater than 0
-    if (exists $cloudsettings->{'maxdownloadfrequencyhours'}) {
-        print "Globals: Checking maxdownloadfrequencyhours value: " . $cloudsettings->{'maxdownloadfrequencyhours'} . "\n";
-        unless ($cloudsettings->{'maxdownloadfrequencyhours'} =~ /^\d+$/ && $cloudsettings->{'maxdownloadfrequencyhours'} > 0) {
-            warn "Invalid maxdownloadfrequencyhours setting. Defaulting to 6.";
-            $cloudsettings->{'maxdownloadfrequencyhours'} = 6;
-        }
-    } else {
-        print "Globals: maxdownloadfrequencyhours not found. Defaulting to 6.\n";
-        $cloudsettings->{'maxdownloadfrequencyhours'} = 6;
-    }
-
     close MF;
 }
 

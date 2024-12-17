@@ -176,7 +176,9 @@ sub check_volcano_data {
 
         # If the file is up to date, return false (no need to update)
         if ($FileAge < 60 * 60 * $MaxDownloadFrequencyHours) {
-            print "Volcano data is up to date!\n";
+            my $FileAgeHours = sprintf("%.1f", $FileAge / 3600);
+            print "Volcano data is up to date! Only . $FileAgeHours . hours old\n";
+            print "Volcano marker file: $volcano_marker_file\n";
             return 0;
         }
     }

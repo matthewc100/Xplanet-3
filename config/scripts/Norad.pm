@@ -85,7 +85,7 @@ sub fetch_and_save_tle_data {
     close $out_fh;
 
     # Message indicating successful update of the TLE file
-    print "TLE file successfully updated: $output_file\n";
+    print "NORAD TLE file successfully updated: $output_file\n";
 }
 
 
@@ -147,7 +147,7 @@ sub process_satellites {
     close $marker_fh;
 
     # Message indicating successful update of the marker file
-    print "Marker file successfully updated: $marker_file\n";
+    print "NORAD Marker file successfully updated: $marker_file\n";
 }
 
 1; # End of the module

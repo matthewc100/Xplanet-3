@@ -56,7 +56,7 @@ sub cloud_update {
     if (!defined $MaxDownloadFrequencyHours) {
         warn "MaxDownloadFrequencyHours is undefined. Check configuration or initialization.";
     }
-    print "CloudUpdate:59 MaxDownloadFrequencyHours = $MaxDownloadFrequencyHours\n";
+
     # Step 1: Check if we need to update the cloud map
     if (!should_update_cloud_map($MaxDownloadFrequencyHours)) {
         print "Skipping cloud map update: too frequent\n";

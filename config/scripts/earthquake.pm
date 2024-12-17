@@ -48,12 +48,12 @@ sub drawcircle {
     my $pixel;
     my $pversion; # Declare $pversion here
 
-    if ($quakesettings->{'QuakePixelMax'} =~ /\d/ && $quakesettings->{'QuakePixelMin'} !~ /\d/) {
+    if ($quakesettings->{'quakepixelmax'} =~ /\d/ && $quakesettings->{'quakepixelmin'} !~ /\d/) {
         $pixel = max_model($mag);
-    } elsif ($quakesettings->{'QuakePixelMax'} !~ /\d/ && $quakesettings->{'QuakePixelMin'} =~ /\d/) {
+    } elsif ($quakesettings->{'quakepixelmax'} !~ /\d/ && $quakesettings->{'quakepixelmin'} =~ /\d/) {
         $pixel = standard_model($mag);
-        $pixel = $pixel + $quakesettings->{'QuakePixelMin'};
-    } elsif ($quakesettings->{'QuakePixelMax'} =~ /\d/ && $quakesettings->{'QuakePixelMin'} =~ /\d/) {
+        $pixel = $pixel + $quakesettings->{'quakepixelmin'};
+    } elsif ($quakesettings->{'quakepixelmax'} =~ /\d/ && $quakesettings->{'quakepixelmin'} =~ /\d/) {
         $pixel = max_min_model($mag);
     } else {
         $pixel = standard_model($mag);
@@ -81,15 +81,15 @@ sub drawcircle {
 
 sub max_model {
     my ($mag) = @_;
-    my $pixel = $quakesettings->{'QuakePixelMax'} / 10;
+    my $pixel = $quakesettings->{'quakepixelmax'} / 10;
     $pixel = $pixel * $mag;
     return $pixel;
 }
 
 sub max_min_model {
     my ($mag) = @_;
-    my $max_pixel = $quakesettings->{'QuakePixelMax'};
-    my $min_pixel = $quakesettings->{'QuakePixelMin'};
+    my $max_pixel = $quakesettings->{'quakepixelmax'};
+    my $min_pixel = $quakesettings->{'quakepixelmin'};
     my $pixel_diff = $max_pixel - $min_pixel;
     my $pixel = $pixel_diff / 10;
     $pixel = $pixel * $mag;
@@ -99,7 +99,7 @@ sub max_min_model {
 
 sub standard_model {
     my ($mag) = @_;
-    my $factor = $quakesettings->{'QuakePixelFactor'};
+    my $factor = $quakesettings->{'quakepixelfactor'};
     my $pixel = $mag / 0.1;
     $pixel = $pixel * 2;
     $pixel = $pixel + 4;
@@ -109,51 +109,77 @@ sub standard_model {
 
 sub colourisetext {
     my ($mag) = @_;
-    my $quake_detail_colour = $quakesettings->{'QuakeDetailColor'};
 
-    if ($quake_detail_colour =~ /Multi/i) {
-        my $quake_detail_min = $quakesettings->{'QuakeDetailColorMin'};
-        my $quake_detail_int = $quakesettings->{'QuakeDetailColorInt'};
-        my $quake_detail_max = $quakesettings->{'QuakeDetailColorMax'};
-        my $colour;
+    # Call colourisemag to determine the color
+    my $colour = colourisemag($mag);
+
+    my $quake_detail_colour = lc($quakesettings->{'quakepixelcolor'} // ''); # Default to '' if undefined
+
+    if ($quake_detail_colour ne 'multi') {
 
         if ($mag < 4) {
-            $colour = $quake_detail_min;
+            $colour = $quakesettings->{'quakepixelcolormin'};
         } elsif ($mag > 5) {
-            $colour = $quake_detail_max;
+            $colour = $quakesettings->{'quakepixelcolorint'};
         } else {
-            $colour = $quake_detail_int;
+            $colour = $quakesettings->{'quakepixelcolormax'};
         }
-
-        return $colour;
-    } else {
-        return $quake_detail_colour;
     }
+    return $colour;
 }
 
 sub colourisemag($) {
-    my ($mag)=@_;
-    
-    if ($quakesettings->{'QuakeCircleColor'} !~ /Multi/) {
-        return $quakesettings->{'QuakeCircleColor'};
+    my ($mag) = @_;
+    print "Earthquake.pm Debug:136 magnitude = $mag\n";
+
+    # Normalize quakecirclecolor to lowercase for consistent handling
+    my $quake_color = lc($quakesettings->{'quakecirclecolor'} // '');  # Default to '' if undefined
+    print "Earthquake.pm Debug:140 quakecirclecolor (normalized) = $quake_color\n";
+
+    my $result;  # Store the return value temporarily
+
+    # Check if quakecirclecolor is not 'multi'
+    if ($quake_color ne 'multi') {
+        $result = $quakesettings->{'quakecirclecolor'};  # Use the original value
+    } else {
+        # Traditional if-elsif-else structure for color selection based on magnitude
+        if ($mag < 2.5) {
+            $result = 'SeaGreen';
+        } elsif ($mag < 3.0) {
+            $result = 'PaleGreen';
+        } elsif ($mag < 3.5) {
+            $result = 'Green';
+        } elsif ($mag < 4.0) {
+            $result = 'ForestGreen';
+        } elsif ($mag < 4.5) {
+            $result = 'Khaki';  # Structural Damage
+        } elsif ($mag < 5.0) {
+            $result = 'LightGoldenrodYellow';
+        } elsif ($mag < 5.5) {
+            $result = 'Yellow';
+        } elsif ($mag < 6.0) {
+            $result = 'DarkGoldenrod';
+        } elsif ($mag < 6.5) {
+            $result = 'Salmon';  # Major Damage
+        } elsif ($mag < 7.0) {
+            $result = 'Orange';
+        } elsif ($mag < 7.5) {
+            $result = 'Tomato';
+        } elsif ($mag < 8.0) {
+            $result = 'OrangeRed';
+        } elsif ($mag < 8.5) {
+            $result = 'Red';  # End of Scale
+        } elsif ($mag < 10.0) {
+            $result = 'White';  # We are in the sh1t now :P
+        } else {
+            $result = 'Aquamarine';
+        }
     }
-    else {
-        return 'SeaGreen'               if $mag < 2.5;
-        return 'PaleGreen'              if $mag < 3.0;
-        return 'Green'                  if $mag < 3.5;
-        return 'ForestGreen'            if $mag < 4.0;
-        return 'Khaki'                  if $mag < 4.5; # Structal Damage
-        return 'LightGoldenrodYellow'   if $mag < 5.0;
-        return 'Yellow'                 if $mag < 5.5;
-        return 'DarkGoldenrod'          if $mag < 6.0;
-        return 'Salmon'                 if $mag < 6.5; # Major Damage
-        return 'Orange'                 if $mag < 7.0;
-        return 'Tomato'                 if $mag < 7.5;
-        return 'OrangeRed'              if $mag < 8.0;
-        return 'Red'                    if $mag < 8.5; # End of Scale
-        return 'White'                  if $mag < 10; # We are in the sh1t now :P
-        return 'Aquamarine';
-    }
+
+    # Debug output for the return value
+    print "Earthquake.pm Debug:183 Returning value = $result\n";
+
+    return $result;
 }
 
 # Subroutine to write out quake data to a marker file
@@ -171,7 +197,7 @@ sub WriteoutQuake {
     # Call file_header to write the header to the marker file
     Label::file_header('Earthquake', $qmf);  # Passing the filehandle to the file_header subroutine
     
-    my $minimum_size = $quakesettings->{'QuakeMinimumSize'};  # Get the minimum magnitude from settings
+    my $minimum_size = $quakesettings->{'quakeminimumsize'};  # Get the minimum magnitude from settings
 
     foreach my $quake (@quakedata) {
         my @quakearray = split /,/, $quake;
@@ -186,6 +212,7 @@ sub WriteoutQuake {
 
             # Assuming colourisemag and drawcircle functions are working correctly
             my $circlecolour = colourisemag($mag);
+            print "Earthquake.pm debug:189 circlecolor = $circlecolour\n";
             my $circlepixel = drawcircle($mag);
             my $textcolour = colourisetext($mag);
 
@@ -198,15 +225,13 @@ sub WriteoutQuake {
     }
 
     close($qmf) or die "Cannot close $quake_marker_file: $!";
-    print "Updated quake marker file\n";
+    print "Updated quake marker file: $quake_marker_file\n";
 }
-
-
 
 # Subroutine to get quake feed based on reporting duration and size
 sub get_Correct_quake_Feed {
-    my $quake_reporting_duration = $quakesettings->{'QuakeReportingDuration'};
-    my $quake_reporting_size = $quakesettings->{'QuakeReportingSize'};
+    my $quake_reporting_duration = $quakesettings->{'quakereportingduration'};
+    my $quake_reporting_size = $quakesettings->{'quakereportingsize'};
     my $quakelocation = '';
 
     if (lc($quake_reporting_duration) eq "day") {
