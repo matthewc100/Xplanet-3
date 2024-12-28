@@ -45,57 +45,66 @@ my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v
 # Subroutine to draw a circle based on magnitude
 sub drawcircle {
     my ($mag) = @_;
+
+    # Normalize the model name for consistent comparison
+    my $model = lc($quakesettings->{'quakesymbolsizemodel'} // 'max');  # Default to 'max'
+
+    # Debugging: Output the selected model
+    print "Earthquake.pm Debug: Selected QuakeSymbolSizeModel = $model\n";
+
     my $pixel;
-    my $pversion; # Declare $pversion here
 
-    if ($quakesettings->{'quakepixelmax'} =~ /\d/ && $quakesettings->{'quakepixelmin'} !~ /\d/) {
+    # Route processing based on the selected model
+    if ($model eq 'max') {
         $pixel = max_model($mag);
-    } elsif ($quakesettings->{'quakepixelmax'} !~ /\d/ && $quakesettings->{'quakepixelmin'} =~ /\d/) {
-        $pixel = standard_model($mag);
-        $pixel = $pixel + $quakesettings->{'quakepixelmin'};
-    } elsif ($quakesettings->{'quakepixelmax'} =~ /\d/ && $quakesettings->{'quakepixelmin'} =~ /\d/) {
+    } elsif ($model eq 'max-min') {
         $pixel = max_min_model($mag);
-    } else {
+    } elsif ($model eq 'standard') {
         $pixel = standard_model($mag);
+    } else {
+        # Fallback to 'max' if an invalid model is provided
+        print "Earthquake.pm Warning: Invalid QuakeSymbolSizeModel '$model'. Defaulting to 'max'.\n";
+        $pixel = max_model($mag);
     }
 
-    if ($settings->{'XplanetVersion'} =~ /\w/) {
-        if ($settings->{'XplanetVersion'} =~ /es/) {
-            return $pixel;
-        } else {
-            my $xplanetversion = get_program_version();
+    # Round to the nearest integer
+    my $rounded_pixel = int($pixel + 0.5);
 
-            if ($xplanetversion =~ /(\d.\d\d)(\w)/) {
-                my ($pversion, $prevision) = ($1, $2);
-                $pversion *= 1;
-            }
+    # Debugging: Output the rounded pixel size
+    print "Earthquake.pm Debug: Calculated symbolsize = $pixel, Rounded = $rounded_pixel for magnitude = $mag using model = $model\n";
 
-            if ($pversion < 0.99) {
-                $pixel = $pixel * 2;
-            }
-
-            return $pixel;
-        }
-    }
+    return $rounded_pixel;
 }
+
 
 sub max_model {
     my ($mag) = @_;
     my $pixel = $quakesettings->{'quakepixelmax'} / 10;
+    print "Earthquake.pm:90 Debug: quakepixelmax = $quakesettings->{'quakepixelmax'}\n";
+
     $pixel = $pixel * $mag;
+    print "Earthquake.pm:93 Debug: max_model - pixel = $pixel, magnitude = $mag\n";
+
     return $pixel;
 }
 
 sub max_min_model {
     my ($mag) = @_;
-    my $max_pixel = $quakesettings->{'quakepixelmax'};
-    my $min_pixel = $quakesettings->{'quakepixelmin'};
-    my $pixel_diff = $max_pixel - $min_pixel;
-    my $pixel = $pixel_diff / 10;
-    $pixel = $pixel * $mag;
-    $pixel = $pixel_diff + $min_pixel;
-    return $pixel;
+    my $max_pixel = $quakesettings->{'quakepixelmax'};  # Max size from .ini
+    my $min_pixel = $quakesettings->{'quakepixelmin'};  # Min size from .ini
+
+    # Ensure $mag is within a reasonable range (optional safety check)
+    $mag = 0 if $mag < 0;
+
+    # Scale pixel size based on magnitude
+    my $scaled_pixel = $min_pixel + (($max_pixel - $min_pixel) * ($mag / 10));
+
+    # Debugging
+    print "Debug: max_pixel = $max_pixel, min_pixel = $min_pixel, magnitude = $mag, scaled_pixel = $scaled_pixel\n";
+
+    return $scaled_pixel;
 }
+
 
 sub standard_model {
     my ($mag) = @_;
@@ -104,6 +113,8 @@ sub standard_model {
     $pixel = $pixel * 2;
     $pixel = $pixel + 4;
     $pixel = $pixel * $factor;
+    print "Earthquake.pm:118 Debug: max_model - pixel = $pixel, magnitude = $mag\n";
+
     return $pixel;
 }
 
@@ -130,11 +141,11 @@ sub colourisetext {
 
 sub colourisemag($) {
     my ($mag) = @_;
-    print "Earthquake.pm Debug:136 magnitude = $mag\n";
+    print "Earthquake.pm Debug:146 magnitude = $mag\n";
 
     # Normalize quakecirclecolor to lowercase for consistent handling
     my $quake_color = lc($quakesettings->{'quakecirclecolor'} // '');  # Default to '' if undefined
-    print "Earthquake.pm Debug:140 quakecirclecolor (normalized) = $quake_color\n";
+    print "Earthquake.pm Debug:150 quakecirclecolor (normalized) = $quake_color\n";
 
     my $result;  # Store the return value temporarily
 
@@ -177,7 +188,7 @@ sub colourisemag($) {
     }
 
     # Debug output for the return value
-    print "Earthquake.pm Debug:183 Returning value = $result\n";
+    print "Earthquake.pm Debug:193 Returning value = $result\n";
 
     return $result;
 }
@@ -212,7 +223,7 @@ sub WriteoutQuake {
 
             # Assuming colourisemag and drawcircle functions are working correctly
             my $circlecolour = colourisemag($mag);
-            print "Earthquake.pm debug:189 circlecolor = $circlecolour\n";
+            print "Earthquake.pm debug:228 Magnitude passed to drawcircle = $mag\n";
             my $circlepixel = drawcircle($mag);
             my $textcolour = colourisetext($mag);
 
