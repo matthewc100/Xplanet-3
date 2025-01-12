@@ -1,3 +1,17 @@
+####################################
+# ATTRIBUTION TO MICHAEL DEAR, who developed the logic for this code
+# and shared it with the Xplanet community.  
+# 
+# Modified by Matthew Coblentz 
+# 18 August 2024
+# Original effort by Michael Dear gratefully acknowledged as this would not
+# be possible otherwise.  
+# 
+# Major driver for this effort is the intent to move major funtionality into
+# Perl modules rather than local subroutines, modernize external file
+# fetching, and use of STRICT and WARNINGS which requires specific code cleanup in 
+# main script.
+####################################
 package Earthquake;
 use strict;
 use warnings;
@@ -49,9 +63,6 @@ sub drawcircle {
     # Normalize the model name for consistent comparison
     my $model = lc($quakesettings->{'quakesymbolsizemodel'} // 'max');  # Default to 'max'
 
-    # Debugging: Output the selected model
-    print "Earthquake.pm Debug: Selected QuakeSymbolSizeModel = $model\n";
-
     my $pixel;
 
     # Route processing based on the selected model
@@ -69,9 +80,6 @@ sub drawcircle {
 
     # Round to the nearest integer
     my $rounded_pixel = int($pixel + 0.5);
-
-    # Debugging: Output the rounded pixel size
-    print "Earthquake.pm Debug: Calculated symbolsize = $pixel, Rounded = $rounded_pixel for magnitude = $mag using model = $model\n";
 
     return $rounded_pixel;
 }
@@ -99,9 +107,6 @@ sub max_min_model {
     # Scale pixel size based on magnitude
     my $scaled_pixel = $min_pixel + (($max_pixel - $min_pixel) * ($mag / 10));
 
-    # Debugging
-    print "Debug: max_pixel = $max_pixel, min_pixel = $min_pixel, magnitude = $mag, scaled_pixel = $scaled_pixel\n";
-
     return $scaled_pixel;
 }
 
@@ -113,8 +118,7 @@ sub standard_model {
     $pixel = $pixel * 2;
     $pixel = $pixel + 4;
     $pixel = $pixel * $factor;
-    print "Earthquake.pm:118 Debug: max_model - pixel = $pixel, magnitude = $mag\n";
-
+   
     return $pixel;
 }
 
@@ -141,12 +145,10 @@ sub colourisetext {
 
 sub colourisemag($) {
     my ($mag) = @_;
-    print "Earthquake.pm Debug:146 magnitude = $mag\n";
-
+    
     # Normalize quakecirclecolor to lowercase for consistent handling
     my $quake_color = lc($quakesettings->{'quakecirclecolor'} // '');  # Default to '' if undefined
-    print "Earthquake.pm Debug:150 quakecirclecolor (normalized) = $quake_color\n";
-
+   
     my $result;  # Store the return value temporarily
 
     # Check if quakecirclecolor is not 'multi'
@@ -187,9 +189,6 @@ sub colourisemag($) {
         }
     }
 
-    # Debug output for the return value
-    print "Earthquake.pm Debug:193 Returning value = $result\n";
-
     return $result;
 }
 
@@ -200,9 +199,6 @@ sub WriteoutQuake {
     # Ensure the file path is properly trimmed
     $quake_marker_file =~ s/^\s+|\s+$//g;
 
-    # Debugging output
-    #print "Debug: Writing to $quake_marker_file\n";
-
     open(my $qmf, ">", $quake_marker_file) or die "Cannot open $quake_marker_file: $!";
 
     # Call file_header to write the header to the marker file
@@ -212,8 +208,7 @@ sub WriteoutQuake {
 
     foreach my $quake (@quakedata) {
         my @quakearray = split /,/, $quake;
-        #print "Debug: Processing quake entry: ", join(", ", @quakearray), "\n";
-
+        
         my $lat =  sprintf("% 8.2f", $quakearray[1]);  # Latitude with 2 decimal places, right-aligned, total width 8
         my $long = sprintf("% 9.2f", $quakearray[2]);  # Longitude with 2 decimal places, right-aligned, total width 9
         my $mag =  sprintf("%.1f", $quakearray[4]);   # Magnitude with 1 decimal place
@@ -223,7 +218,6 @@ sub WriteoutQuake {
 
             # Assuming colourisemag and drawcircle functions are working correctly
             my $circlecolour = colourisemag($mag);
-            print "Earthquake.pm debug:228 Magnitude passed to drawcircle = $mag\n";
             my $circlepixel = drawcircle($mag);
             my $textcolour = colourisetext($mag);
 

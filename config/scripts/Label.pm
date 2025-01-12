@@ -1,6 +1,7 @@
 package Label;
 use strict;
 use warnings;
+use Data::Dumper;
 use Time::Local;  # Load the Time::Local module
 
 use Globals qw($label_file $labelsettings);  # Import $labelsettings from Globals
@@ -24,14 +25,14 @@ use Globals qw($label_file $labelsettings);  # Import $labelsettings from Global
  
 sub WriteoutLabel {
     # Invocation parameters control which types to process
-    my ($update_earth, $update_norad, $update_cloud, $update_hurricane, $update_volcano, $update_label) = @_;
+    my ($update_earth, $update_norad, $update_cloud, $update_storm, $update_volcano, $update_label) = @_;
 
     # Declare and initialize the types and their invocation flags
     my %types_to_check = (
         "Earthquake" => $update_earth,
         "NORAD"      => $update_norad,
         "Cloud"      => $update_cloud,
-        "Hurricane"  => $update_hurricane,
+        "Storm"      => $update_storm,
         "Volcano"    => $update_volcano,
     );
 
@@ -40,16 +41,17 @@ sub WriteoutLabel {
         "Earthquake" => [-68, -13],
         "NORAD"      => [-83, -13],
         "Cloud"      => [-98, -13],
-        "Hurricane"  => [-113, -13],
+        "Storm"      => [-113, -13],
         "Volcano"    => [-128, -13],
     );
 
     # Declare and initialize colors for status levels
     my %type_colors = (
-        "OK"    => $labelsettings->{'LabelColorOk'},
-        "Warn"  => $labelsettings->{'LabelColorWarn'},
-        "Error" => $labelsettings->{'LabelColorError'},
+        "OK"    => $labelsettings->{lc('LabelColorOk')}    // 'Green',
+        "Warn"  => $labelsettings->{lc('LabelColorWarn')}  // 'Yellow',
+        "Error" => $labelsettings->{lc('LabelColorError')} // 'Red',
     );
+
 
     # Declare and initialize the found data tracker
     my %found_data = map { $_ => 0 } keys %types_to_check;
@@ -74,80 +76,47 @@ sub WriteoutLabel {
         close($read_fh);
     }
 
-    # Step 2: Process updates or mark as not found
+    # Step 2: Ensure every type has a corresponding entry
     foreach my $type (keys %types_to_check) {
-        next unless $types_to_check{$type};  # Skip types not flagged for processing
-
-        if (exists $current_entries{$type}) {
+        if ($types_to_check{$type} && exists $current_entries{$type}) {
             # Update existing data
             $current_entries{$type} = process_data_for_type($type, \%type_positions);
             $found_data{$type} = 1;
-        } else {
-            # Mark as missing
-            $found_data{$type} = 0;
+        } elsif ($types_to_check{$type}) {
+            # Add "not found" entry for missing types flagged for processing
+            my ($Yco, $Xco) = @{$type_positions{$type}};
+            $current_entries{$type} = generate_not_found_message($type, \%type_positions, \%type_colors, $formatted_time);
+        } elsif (!exists $current_entries{$type}) {
+            # Ensure "not found" entry for types not updated and not present in the file
+            my ($Yco, $Xco) = @{$type_positions{$type}};
+            $current_entries{$type} = generate_not_found_message($type, \%type_positions, \%type_colors, $formatted_time);
         }
     }
 
     # Step 3: Write the header and sorted data to the marker file
     open(my $write_fh, '>', $label_file) or die "Cannot open $label_file for writing: $!";
-    file_header('UpdateLabel', $write_fh);  
+    file_header('UpdateLabel', $write_fh);
 
     # Collect all lines into an array for sorting
     my @lines;
-
-    # Initialize an array to store all lines for sorting
-    foreach my $type (keys %types_to_check) {
-        
-        # Case 1: The type has been processed and data is found
-        if ($found_data{$type} && $current_entries{$type}) {
-
-            # Extract the x-position (first numeric value in the line)
-            my ($x_pos) = ($current_entries{$type} =~ /^(-?\d+\.?\d*)\s/);
-            $x_pos //= 0;  # Default to 0 if x_pos extraction fails to ensure sorting works 
-
-            # Push the entry (x_pos and the full line) into @lines for later sorting
-            push @lines, { x_pos => $x_pos, line => $current_entries{$type} };  
-
-        # Case 2: The type has been processed but no data was found
-        } elsif ($types_to_check{$type} && !$found_data{$type}) {
-            my ($Yco, $Xco) = @{$type_positions{$type}};  # Get predefined coordinates for the type 
-
-            # Construct a "not found" message for this type
-            my $not_found_line = "$Yco $Xco \"$type information not found\" $formatted_time color=$type_colors{'Error'} image=none position=pixel";
-
-            # Push the "not found" message into @lines, using $Xco as the x-position
-            push @lines, { x_pos => $Xco, line => $not_found_line };    
-
-        # Case 3: The type is not processed in this run, but we retain the existing entry
-        } else {
-            if (exists $current_entries{$type}) {  # Check if an existing entry for this type is present
-
-                # Extract the x-position (first numeric value in the line)
-                my ($x_pos) = ($current_entries{$type} =~ /^(-?\d+\.?\d*)\s/);
-                $x_pos //= 0;  # Default to 0 if extraction fails   
-
-                # Push the retained entry into @lines for sorting
-                push @lines, { x_pos => $x_pos, line => $current_entries{$type} };
-            }
-        }
-    }  
+    foreach my $type (keys %current_entries) {
+        my $line = $current_entries{$type};
+        my ($x_pos) = ($line =~ /^(-?\d+\.?\d*)\s/);
+        $x_pos //= 0;  # Default to 0 if x_pos extraction fails
+        push @lines, { x_pos => $x_pos, line => $line };
+    }
 
     # Sort lines by x-position in descending order
-    @lines = sort {
-        $b->{x_pos} <=> $a->{x_pos}  # Sort numerically in descending order
-    } @lines;   
+    @lines = sort { $b->{x_pos} <=> $a->{x_pos} } @lines;
 
     # Write sorted lines to the file
     foreach my $entry (@lines) {
-        if (defined $entry->{line}) {
-            print $write_fh $entry->{line} . "\n";
-        } else {
-            print "Warning: Skipped entry with undefined line\n";
-        }
-    }   
+        print $write_fh $entry->{line} . "\n";
+    }
 
     close($write_fh);
 }
+
 
 # Subroutine to process data for a specific type and return formatted string
 sub process_data_for_type {
@@ -157,7 +126,7 @@ sub process_data_for_type {
     my ($Yco, $Xco) = @{$type_positions->{$type}};
     my $color = "Green";                                           # Assume the color is determined dynamically
     my $formatted_time = get_current_time();
-    return "$Yco $Xco \"$type information last updated\" $formatted_time color=$color image=none position=pixel";
+    return "$Yco $Xco \"$type information last updated $formatted_time\" color=$color image=none position=pixel";
 }
 
 # Subroutine to evaluate the status of a type and generate the appropriate line
@@ -172,7 +141,7 @@ sub evaluate_type_status {
     my $status = "OK";  # Replace with real status evaluation
     my $color  = $type_colors->{$status};
 
-    return "$Yco $Xco \"$type information last updated\" $formatted_time color=$color image=none position=pixel";
+    return "$Yco $Xco \"$type information last updated $formatted_time\" color=$color image=none position=pixel";
 }
 
 # Subroutine to output a "not found" message at specified coordinates for missing data
@@ -181,7 +150,7 @@ sub generate_not_found_message {
     my ($Yco, $Xco) = @{$type_positions->{$type}};
     my $color = $type_colors->{'Error'};                        # Use the "Error" color for "not found" messages
 
-    return "$Yco $Xco \"$type information not found\" $formatted_time color=$color image=none position=pixel";
+    return "$Yco $Xco \"$type information not found $formatted_time\" color=$color image=none position=pixel";
 }
 
 # Helper to get the current timestamp for output messages
@@ -292,14 +261,8 @@ sub update_time_status {
         $monthlet, $yeartime, $colour, $image, $position) = @_;
 
     # Write the base information to the file
-    print $fh "$Yco $Xco \"$text1\" ";
-    print $fh "$text2 ";
-    print $fh "$text3 ";
-    print $fh "$text4 ";
-    print $fh "$weekday ";
-    print $fh "$monthday ";
-    print $fh "$monthlet ";
-    print $fh "$yeartime\" ";
+    print $fh "$Yco $Xco \"$text1 $text2 $text3 $text4 $weekday $monthday $monthlet $yeartime\" ";
+
 
     # Determine the color based on the time difference
     if ($time_difference < $warning_length->{$type}) {

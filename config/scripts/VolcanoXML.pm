@@ -150,9 +150,9 @@ sub process_volcano_data {
                 $longitude = sprintf("% 7.2f", $longitude);
                 
                 # Output the required lines in the marker file
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'VolcanoCircleColorInner'} symbolsize=$volcanosettings->{'VolcanoCircleSizeInner'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'VolcanoCircleColorMiddle'} symbolsize=$volcanosettings->{'VolcanoCircleSizeMiddle'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$volcanosettings->{'VolcanoCircleColorOuter'} symbolsize=$volcanosettings->{'VolcanoCircleSizeOuter'} align=$volcanosettings->{'VolcanoNameAlign'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'volcanocirclecolorinner'} symbolsize=$volcanosettings->{'volcanocirclesizeinner'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'volcanocirclecolormiddle'} symbolsize=$volcanosettings->{'volcanocirclesizemiddle'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$volcanosettings->{'volcanocirclecolorouter'} symbolsize=$volcanosettings->{'volcanocirclesizeouter'} align=$volcanosettings->{'volcanonamealign'}\n";
             }
         }
         
