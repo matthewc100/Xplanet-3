@@ -47,9 +47,9 @@ sub WriteoutLabel {
 
     # Declare and initialize colors for status levels
     my %type_colors = (
-        "OK"    => $labelsettings->{lc('LabelColorOk')}    // 'Green',
-        "Warn"  => $labelsettings->{lc('LabelColorWarn')}  // 'Yellow',
-        "Error" => $labelsettings->{lc('LabelColorError')} // 'Red',
+        "OK"    => $Globals::modules{'labelupdate'}{'Label.Color.Ok'}    // 'Green',
+        "Warn"  => $Globals::modules{'labelupdate'}{'Label.Color.Warn'}  // 'Yellow',
+        "Error" => $Globals::modules{'labelupdate'}{'Label.Color.Error'} // 'Red',
     );
 
 
@@ -80,7 +80,7 @@ sub WriteoutLabel {
     foreach my $type (keys %types_to_check) {
         if ($types_to_check{$type} && exists $current_entries{$type}) {
             # Update existing data
-            $current_entries{$type} = process_data_for_type($type, \%type_positions);
+            $current_entries{$type} = process_data_for_type($type, \%type_positions, \%type_colors);
             $found_data{$type} = 1;
         } elsif ($types_to_check{$type}) {
             # Add "not found" entry for missing types flagged for processing
@@ -120,27 +120,12 @@ sub WriteoutLabel {
 
 # Subroutine to process data for a specific type and return formatted string
 sub process_data_for_type {
-    my ($type, $type_positions) = @_;                              # Receive %type_positions as a reference
+    my ($type, $type_positions, $type_colors) = @_;                              # Receive %type_positions as a reference
 
     # Example position and color assignments, replace with actual data processing as needed
     my ($Yco, $Xco) = @{$type_positions->{$type}};
-    my $color = "Green";                                           # Assume the color is determined dynamically
+    my $color = $type_colors->{'OK'};                              # Assume the color is determined dynamically
     my $formatted_time = get_current_time();
-    return "$Yco $Xco \"$type information last updated $formatted_time\" color=$color image=none position=pixel";
-}
-
-# Subroutine to evaluate the status of a type and generate the appropriate line
-sub evaluate_type_status {
-    my ($type, $type_positions, $type_colors) = @_;
-
-    # Example logic: Decide OK, Warn, or Error based on arbitrary conditions
-    my ($Yco, $Xco) = @{$type_positions->{$type}};
-    my $formatted_time = get_current_time();
-
-    # Simulated evaluation (replace with actual logic)
-    my $status = "OK";  # Replace with real status evaluation
-    my $color  = $type_colors->{$status};
-
     return "$Yco $Xco \"$type information last updated $formatted_time\" color=$color image=none position=pixel";
 }
 

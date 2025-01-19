@@ -35,6 +35,42 @@ use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scrip
 use Exporter 'import';
 #our @EXPORT_OK = qw(get_file);
 
+use Globals qw(
+    $settings
+    $xplanet_dir
+    $settings_ini_file
+    $xplanet_markers_dir
+    $xplanet_arcs_dir
+    $xplanet_satellites_dir
+    $xplanet_images_dir
+    $xplanet_config_dir
+    debug_print_modules
+
+    set_pversion
+    update_directories
+
+    $quakesettings 
+    $quake_marker_file 
+    @quakedata 
+
+    $labelsettings
+
+    $noradsettings
+
+    $volcanosettings 
+    $volcano_marker_file
+   
+    $stormsettings 
+ 
+    $cloudsettings 
+
+    $eclipse_data_file
+    $eclipse_marker_file
+    $eclipse_arc_file
+
+    $xplanet_images_dir
+    );
+
 use Storm;
 use Label;
 use CloudUpdate qw(
@@ -69,40 +105,6 @@ use Eclipse qw(
 use EasterEgg qw(easteregg
     ); 
 
-use Globals qw(
-    $settings
-    $xplanet_dir
-    $settings_ini_file
-    $xplanet_markers_dir
-    $xplanet_arcs_dir
-    $xplanet_satellites_dir
-    $xplanet_images_dir
-    $xplanet_config_dir
-
-    set_pversion
-    update_directories
-
-    $quakesettings 
-    $quake_marker_file 
-    @quakedata 
-
-    $labelsettings
-
-    $noradsettings
-
-    $volcanosettings 
-    $volcano_marker_file
-   
-    $stormsettings 
- 
-    $cloudsettings 
-
-    $eclipse_data_file
-    $eclipse_marker_file
-    $eclipse_arc_file
-
-    $xplanet_images_dir
-    );
 
 #perl2exe_include "Bzip2.pm";
 #perl2exe_include "FileSpec.pm";
@@ -187,21 +189,22 @@ my $clouds_on_off;
 my $hurricane_on_off;
 my $xplanetversion;
 
-our $xplanet_dir = $ENV{'XPLANET_DIR'} || "C:\\Users\\mcoblent\\onedrive\\xplanet\\xplanet-1.3.0\\xplanet-3";
-
-# Set the value of $xplanet_dir in Globals
-Globals::set_xplanet_dir($xplanet_dir);
+# Initialize $xplanet_dir and dependent directories
+Globals::initialize_xplanet_dir();
 
 # Call the subroutine to initialize directory and file paths
 Globals::get_directory_settings();
 #
 # Test that locations exist and can be written to.
 #
--d $xplanet_dir         || die("Could not find xplanet installation directory $xplanet_dir\n");
--r $xplanet_dir         || die("Could not read from xplanet installation directory $xplanet_dir\n");
--w $xplanet_dir         || die("Could not write to xplanet installation directory $xplanet_dir\n");
--e $eclipse_data_file   || &install("eclipsfile");
--e $settings_ini_file   || &install("configfile");
+# Validate critical directories and files
+-d $xplanet_markers_dir || die("Could not find xplanet markers directory: $xplanet_markers_dir\n");
+-r $xplanet_markers_dir || die("Cannot read from xplanet markers directory: $xplanet_markers_dir\n");
+-w $xplanet_markers_dir || die("Cannot write to xplanet markers directory: $xplanet_markers_dir\n");
+
+-e $settings_ini_file || die("Configuration file missing: $settings_ini_file\n");
+
+#-e $eclipse_data_file   || &install("eclipsfile");
 
 -d $xplanet_markers_dir || die("Could not find xplanet markers directory $xplanet_markers_dir\n");
 -r $xplanet_markers_dir || die("Could not read from xplanet markers directory $xplanet_markers_dir\n");
@@ -670,7 +673,7 @@ sub install() {
             open (MF, ">$settings_ini_file");
             print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See http://www.wizabit.eclipse.co.uk/xplanet/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
             print MF "\#\n\#QUAKE\n\#\nQuakeDetailColorMin=Green\nQuakeDetailColorInt=Yellow\nQuakeDetailColorMax=Red\nQuakeDetailAlign=Above\nQuakeCircleColor=Multi\nQuakePixelMax=\nQuakePixelMin=\nQuakePixelFactor=1\nQuakeImageList=\nQuakeImageTransparent=\nQuakeDetailList=<mag>\nQuakeDetailColor=Multi\nQuakeMinimumSize=0\n";
-            print MF "\#\n\#VOLCANO\n\#\nVolcanoCircleSizeInner=4\nVolcanoCircleSizeMiddle=8\nVolcanoCircleSizeOuter=12\nVolcanoCircleColorInner=Yellow\nVolcanoCircleColorMiddle=Red\nVolcanoCircleColorOuter=Brown\nVolcanoNameOnOff=On\nVolcanoNameColor=Brown\nVolcanoNameAlign=Below\nVolcanoImageList=\nVolcanoImageTransparent=\nVolcanoDetailList=\nVolcanoDetailAlign=\nVolcanoDetailColor=\n";
+            print MF "\#\n\#VOLCANO\n\#\nVolcano.Circle.Size.Inner=4\nVolcano.Circle.Size.Middle=8\nVolcano.Circle.Size.Outer=12\nVolcano.Circle.Color.Inner=Yellow\nVolcano.Circle.Color.Middle=Red\nVolcano.Circle.Color.Outer=Brown\nVolcanoNameOnOff=On\nVolcanoNameColor=Brown\nVolcano.Name.Align=Below\nVolcanoImageList=\nVolcanoImageTransparent=\nVolcanoDetailList=\nVolcanoDetailAlign=\nVolcanoDetailColor=\n";
             print MF "\#\n#STORMS\n\#\nStormColorTrackReal=Blue\nStormColorTrackPrediction=SkyBlue\nStormNameOnOff=On\nStormColorName=SkyBlue\nStormAlignName=Above\nStormDetailList=<type>\nStormColorDetail=SkyBlue\nStormAlignDetail=Below\nStormImageList=\nStormImageTransparent=\nStormTrackOnOff=On\n";
             print MF "\#\n\#ECLIPSE\n\#\nEclipseOnOff=On\nEclipseNotifyOnOff=On\nEclipseNotifyTimeHours=48\n";
             print MF "\#\n\#NORAD\n\#\nNoradIssImage=iss.png\nNoradIssText=\nNoradIssDetail=transparent={0,0,0} trail={orbit,-5,0,5} color=yellow altcirc=0 trail={orbit,-10,0,5}\nNoradIssOnOff=On\nNoradHstImage=hst.png\nNoradHstText=\nNoradHstDetail=transparent={0,0,0}\nNoradHstOnOff=On\nNoradSoyuzImage=Soyuz.png\nNoradSoyuzText=\nNoradSoyuzDetail=transparent={0,0,0}\nNoradSoyuzOnOff=On\nNoradStsImage=sts.png\nNoradStsText=\nNoradStsDetail=transparent={0,0,0}\nNoradStsOnOff=On\nNoradSatImage=sat.png\nNoradSatText=\nNoradSatDetail=transparent={0,0,0}\nNoradSatOnOff=On\nNoradMiscOnOff=Off\nNoradTleNumbers=\nNoradMiscDetail=\nNoradFileName=tm\n";
@@ -1240,80 +1243,93 @@ my $installed =1;
 my @settings;
 
 
-Globals::get_settings;
+Globals::get_directory_settings;
+# Debugging the modules section as we refactor Globals.pm
+# print "Main script line 1248 checking Global modules: \n";
+# print %Globals::modules, "\n";
+# print "debugging modules after returning to main \n";
+# Globals::debug_print_modules();
+# print "\n";
+
+# Updated logic for eclipse override
 if ($eclipseoverride eq 1) {
-    $settings->{'eclipseonoff'} = 'Off';
+    $Globals::modules{'eclipses'}{'EclipseOnOff'} = 'Off';
 }
 
-if ($labelsettings->{'labelonoff'} =~ /On/) {
+# Updated logic for label settings
+# print "line 1261 - debug label settings ", $Globals::modules{'labelupdate'}{'LabelOnOff'}, "\n";
+
+if ($Globals::modules{'labelupdate'}{'LabelOnOff'} =~ /On/) {
     $label_on_off = 1;
+} else {
+    $label_on_off = 0;
 }
-else {$label_on_off = 0;}
 
-if ($settings->{'eclipseonoff'} =~ /On/) {
+if ($Globals::modules{'eclipses'}{'EclipseOnOff'} =~ /On/) {
     $eclipse_on_off = 1;
 }
-else {$eclipse_on_off = 0;}
-
-if ($settings->{'eastereggsurprises'} =~ /Off/) {
-    $EasterEgg_on_off = 0;
+else {$eclipse_on_off = 0;
 }
-else {$EasterEgg_on_off = 1;}
 
-if ($clouds_on_off != 2 && $clouds_on_off != 1 && $volcano_on_off != 1 && $hurricane_on_off != 1 && $quake_on_off != 1 && $norad_on_off != 1 && $update_label != 1 && $installed != 1) {
+# EasterEgg setting
+if ($Globals::settings->{'eastereggsurprises'} =~ /Off/) {
+    $EasterEgg_on_off = 0;
+} else {
+    $EasterEgg_on_off = 1;
+}
+
+# Check On/Off Switches
+$clouds_on_off     = $Globals::modules{'clouds'}{'cloudonoff'} // 0;
+$volcano_on_off    = $Globals::modules{'volcanoes'}{'volcanoonoff'} // 0;
+$hurricane_on_off  = $Globals::modules{'storms'}{'stormonoff'} // 0;
+$quake_on_off      = $Globals::modules{'quakes'}{'quakeonoff'} // 0;
+$norad_on_off      = $Globals::modules{'norad'}{'noradonoff'} // 0;
+
+# Check if no module is active
+if ($clouds_on_off != 2 && $clouds_on_off != 1 &&
+    $volcano_on_off != 1 && $hurricane_on_off != 1 &&
+    $quake_on_off != 1 && $norad_on_off != 1 &&
+    $update_label != 1 && $installed != 1) {
     &get_it_right_lamer;
 }
-else {
-    if ($clouds_on_off == 1) {
-        $cloud_record_number = 1;
-    }
-    elsif ($clouds_on_off == 2) {
-        CloudUpdate::cloud_update();  # Call cloud_update from the CloudUpdate module;
-        $cloud_record_number = 1;
-    }
-    
-    if ($hurricane_on_off == 1) {
-        my @hurricanedata;
-        my @hurricanearcdatafor;
-        my @hurricanearcdataact;
 
-        Storm::fetch_and_process_storms();
-        # $hurricane_record_number = 1;
-        
-        # $hurricane_record_number = Hurricane::get_hurricane_data_count();
-        # Hurricane::WriteoutHurricane($hurricane_record_number);
-        
-        # my ($actcounter, $forcounter) = Hurricane::get_hurricanearcdata($hurricane_record_number);
-        # Hurricane::WriteoutHurricaneArc($hurricane_record_number, $actcounter, $forcounter);
+else {
+    # Clouds Module
+    if ($Globals::modules{'clouds'}{'cloudonoff'} == 1) {
+        CloudUpdate::cloud_update();  # Call cloud_update from the CloudUpdate module
     }
     
-    if ($quake_on_off == 1) {
+    # Hurricane/Storms Module
+    if ($Globals::modules{'storms'}{'stormonoff'} == 1) {
+        Storm::fetch_and_process_storms();
+    }
+    
+    # Earthquakes Module
+    if ($Globals::modules{'quakes'}{'quakeonoff'} == 1) {
         Earthquake::get_quakedata();
         $quake_record_number = 1;
     }
     
-    if ($norad_on_off == 1) {    
-        # Define the input satellite file, the output TLE file, and the marker file paths
-        my $satellite_file = "$xplanet_satellites_dir\\Norad";      # e.g., "iss"
-        my $output_tle_file = "$xplanet_satellites_dir\\Norad.tle";     # e.g., "iss.tle"
-        my $marker_file = "$xplanet_satellites_dir\\Norad_marker.txt";     # e.g., "iss_marker.txt"        
+    # NORAD Module
+    if ($Globals::modules{'norad'}{'NoradOnOff'} == 1) {    
+        my $satellite_file = "$xplanet_satellites_dir\\Norad";
+        my $output_tle_file = "$xplanet_satellites_dir\\Norad.tle";
+        my $marker_file = "$xplanet_satellites_dir\\Norad_marker.txt";
         
-        # Call the process_satellites function to process the satellite data
         Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
         $norad_record_number = 1;
     }
     
-    if ($volcano_on_off == 1) {
-        # Check if the volcano data needs to be updated
+    # Volcano Module
+    if ($Globals::modules{'volcanoes'}{'volcanoonoff'} == 1) {
         if (VolcanoXML::check_volcano_data()) {
-            # Process the volcano data using VolcanoXML module
             VolcanoXML::process_volcano_data();
         }
         $volcano_record_number = 1;
     }
     
+    # Label Updates
     if ($label_on_off == 1) {
-        # Routine label updates during regular operations
         Label::WriteoutLabel(
             $quake_record_number, 
             $norad_record_number, 
@@ -1322,11 +1338,10 @@ else {
             $volcano_record_number, 
             0  # Routine update
         );
-        Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 0);
     }
     
+    # Forced Label Updates
     if ($update_label == 1) {
-        # Manual or forced label updates triggered by user input
         Label::WriteoutLabel(
             $quake_record_number, 
             $norad_record_number, 
@@ -1335,31 +1350,26 @@ else {
             $volcano_record_number, 
             1  # Forced update
         );
-        Label::WriteoutLabel($quake_record_number, $norad_record_number, $cloud_record_number, $hurricane_record_number, $volcano_record_number, 1);
     }
     
-    if ($eclipse_on_off == 1) {
-        my @eclipsedata;
-        my @eclipsetrack;
+    # Eclipse Module
+    if ($Globals::modules{'eclipses'}{'eclipseonoff'} == 1) {
         my $eclipse_record_number = Eclipse::readineclipseindex();
         my $active_eclipse_number = Eclipse::datacurrent($eclipse_record_number);
         
-        if ($active_eclipse_number !~ /NONE/ || $active_eclipse_number !~ /\d/) {
-            $active_eclipse_number = "NONE";
-        }
-        
         if ($active_eclipse_number !~ /NONE/) {
-            if ($eclipsedata[$active_eclipse_number]->{'detail'} =~ /CRUDE/) {
-                my @eclipserefined;
+            if ($eclipsedata[$active_eclipse_number]{'detail'} =~ /CRUDE/) {
                 Eclipse::refinedata($active_eclipse_number);
             }
             
             my $track_number = Eclipse::readineclipsetrack($active_eclipse_number);
-            
             Eclipse::writeouteclipsearccenter($track_number);
             Eclipse::writeouteclipsemarker($track_number);
             
-            my $next_eclipse = timegm(0, $eclipsetrack[1]->{'minute'}, $eclipsetrack[1]->{'hour'}, $eclipsedata[$active_eclipse_number]->{'dayofmonth'}, num_of_month($eclipsedata[$active_eclipse_number]->{'monthtxt'}), $eclipsedata[$active_eclipse_number]->{'year'});
+            my $next_eclipse = timegm(0, $eclipsetrack[1]{'minute'}, $eclipsetrack[1]{'hour'}, 
+                                      $eclipsedata[$active_eclipse_number]{'dayofmonth'}, 
+                                      num_of_month($eclipsedata[$active_eclipse_number]{'monthtxt'}), 
+                                      $eclipsedata[$active_eclipse_number]{'year'});
             my $time_now = time;
             my $countdown = ($next_eclipse - $time_now);
             
@@ -1367,19 +1377,15 @@ else {
                 Eclipse::writeouteclipsearcboarder($track_number);
             }
             
-            if ($settings->{'EclipseNotifyOnOff'} =~ /On/) {
+            if ($Globals::modules{'eclipses'}{'eclipsenotifyonoff'} =~ /On/) {
                 Eclipse::writeouteclipselabel($active_eclipse_number, $track_number, $countdown);
             }
-        }
-        else {
+        } else {
             Eclipse::writeouteclipsefilesnone();
-        }
-        
-        if ($EasterEgg_on_off !~ /0/ && $label_on_off == 1) {
-            EasterEgg::easteregg();
         }
     }
 }
+
 
 
 #print "ON OFF = $volcano_on_off Volcano Record Number = $volcano_record_number \nON OFF = $quake_on_off Quake Record Number = $quake_record_number\nON OFF = $hurricane_on_off Hurricane Record Number = $hurricane_record_number\nON OFF = $clouds_on_off Cloud Record Number = $cloud_record_number\nON OFF = $norad_on_off NORAD Record Number = $norad_record_number\nON OFF = $label_on_off Label\nON OFF = $eclipse_on_off Eclipse\n";

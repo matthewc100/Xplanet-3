@@ -79,7 +79,11 @@ use LWP::UserAgent;  # Add this module to fetch the XML from a URL
 use Exporter 'import';
 our @EXPORT_OK = qw(process_volcano_data check_volcano_data);
 
-use Globals qw($volcano_marker_file $volcanosettings);
+use Globals qw(
+    $volcano_marker_file
+    %modules
+    $volcanosettings
+    );
 
 ########################################################
 #  CONFIGURATION DATA
@@ -116,14 +120,6 @@ sub process_volcano_data {
         # Find all <ns:info> nodes (use the namespace prefix 'ns')
         my @info_nodes = $xpc->findnodes('//ns:info');
 
-#        foreach my $info (@info_nodes) {
-#            # Extract the volcano name
-#            my $volcano_name = $xpc->findvalue('./ns:eventCode[ns:valueName="Volcano Name"]/ns:value', $info);
-#                            
-#            # Extract the geo-coordinates
-#            my $geo_circle = $xpc->findvalue('./ns:area/ns:circle[1]', $info); 
-#        }
-
         # Open the volcano marker file for writing
         open(my $VOLCANO_FH, '>', $volcano_marker_file) 
             or die "Cannot open $volcano_marker_file: $!";
@@ -149,10 +145,20 @@ sub process_volcano_data {
                 $latitude  = sprintf("% 7.2f", $latitude);
                 $longitude = sprintf("% 7.2f", $longitude);
                 
+                # Fetch settings from %Globals::modules
+                my $inner_color  = $Globals::modules{'volcanoes'}{'Volcano.Circle.Color.Inner'} // 'Yellow';
+                my $inner_size   = $Globals::modules{'volcanoes'}{'Volcano.Circle.Size.Inner'}  // 4;
+                my $middle_color = $Globals::modules{'volcanoes'}{'Volcano.Circle.Color.Middle'} // 'Red';
+                my $middle_size  = $Globals::modules{'volcanoes'}{'Volcano.Circle.Size.Middle'} // 8;
+                my $outer_color  = $Globals::modules{'volcanoes'}{'Volcano.Circle.Color.Outer'} // 'Brown';
+                my $outer_size   = $Globals::modules{'volcanoes'}{'Volcano.Circle.Size.Outer'}  // 12;
+                my $align        = $Globals::modules{'volcanoes'}{'Volcano.Name.Align'}        // 'Below';
+
+
                 # Output the required lines in the marker file
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'volcanocirclecolorinner'} symbolsize=$volcanosettings->{'volcanocirclesizeinner'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'volcanocirclecolormiddle'} symbolsize=$volcanosettings->{'volcanocirclesizemiddle'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$volcanosettings->{'volcanocirclecolorouter'} symbolsize=$volcanosettings->{'volcanocirclesizeouter'} align=$volcanosettings->{'volcanonamealign'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'Volcano.Circle.Color.Inner'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Inner'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'Volcano.Circle.Color.Middle'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Middle'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$volcanosettings->{'Volcano.Circle.Color.Outer'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Outer'} align=$volcanosettings->{'Volcano.Name.Align'}\n";
             }
         }
         

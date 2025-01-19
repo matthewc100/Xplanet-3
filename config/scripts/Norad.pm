@@ -5,12 +5,14 @@ use warnings;
 use Exporter 'import';
 
 use Globals qw(
-    $noradsettings 
+    %modules
     $xplanet_satellites_dir
+    $xplanet_images_dir
+    get_webpage
+
+    $noradsettings 
     $iss_file
     $isstle_file
-    $xplanet_images_dir 
-    get_webpage
 );
 
 our @EXPORT_OK = qw(
@@ -88,9 +90,6 @@ sub fetch_and_save_tle_data {
     print "NORAD TLE file successfully updated: $output_file\n";
 }
 
-
-
-
 # Main function to read satellite file, fetch TLE data, and generate marker file with settings from .ini file
 sub process_satellites {
     my ($satellite_file, $output_tle_file, $marker_file) = @_;
@@ -100,11 +99,11 @@ sub process_satellites {
     my @file_satellite_ids = parse_satellite_file($satellite_file) unless @satellite_ids;
     
     # Conflict checking for ISS and HST NORAD numbers
-    if (grep { $_ == 25544 } @file_satellite_ids && $noradsettings->{noradissonoff} eq "On") {
+    if (grep { $_ == 25544 } @file_satellite_ids && $Globals::modules{'norad'}{'Norad.Iss.On.Off'} eq "On") {
         warn "Conflict detected: ISS (25544) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
-    if (grep { $_ == 20580 } @file_satellite_ids && $noradsettings->{noradhstonoff} eq "On") {
+    if (grep { $_ == 20580 } @file_satellite_ids && $Globals::modules{'norad'}{'Norad.Hst.On.Off'} eq "On") {
         warn "Conflict detected: HST (20580) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
@@ -122,23 +121,20 @@ sub process_satellites {
         # Customize marker entry based on NORAD settings
         my ($image, $text, $detail) = ("default.png", "", "color=white altcirc=35");
         
-        if ($sat_id == 25544 && $noradsettings->{noradissonoff} eq "On") {  # ISS specific settings
-            $image  = $noradsettings->{noradissimage} // $image;
-            $text   = $noradsettings->{noradisstext} // "ISS";
-            $detail = $noradsettings->{noradissdetail} // $detail;
-        }
-        elsif ($sat_id == 20580 && $noradsettings->{noradhstonoff} eq "On") {  # HST specific settings
-            $image  = $noradsettings->{noradhstimage} // $image;
-            $text   = $noradsettings->{noradhsttext} // "HST";
-            $detail = $noradsettings->{noradhstdetail} // $detail;
-        }
-        elsif ($noradsettings->{noradsatonoff} eq "On") {  # Default satellite settings
-            $image  = $noradsettings->{noradsatimage} // $image;
-            $text   = $noradsettings->{noradsattext} // "";
-            $detail = $noradsettings->{noradsatdetail} // $detail;
-        }
-        else {
-            next;  # Skip if no settings are enabled for this satellite
+        if ($sat_id == 25544 && $Globals::modules{'norad'}{'Norad.Iss.On.Off'} eq "On") {
+            $image  = $Globals::modules{'norad'}{'Norad.Iss.Image'} // $image;
+            $text   = $Globals::modules{'norad'}{'Norad.Iss.Text'} // "ISS";
+            $detail = $Globals::modules{'norad'}{'Norad.Iss.Detail'} // $detail;
+        } elsif ($sat_id == 20580 && $Globals::modules{'norad'}{'Norad.Hst.On.Off'} eq "On") {
+            $image  = $Globals::modules{'norad'}{'Norad.Hst.Image'} // $image;
+            $text   = $Globals::modules{'norad'}{'Norad.Hst.Text'} // "HST";
+            $detail = $Globals::modules{'norad'}{'Norad.Hst.Detail'} // $detail;
+        } elsif ($Globals::modules{'norad'}{'Norad.Sat.On.Off'} eq "On") {
+            $image  = $Globals::modules{'norad'}{'Norad.Sat.Image'} // $image;
+            $text   = $Globals::modules{'norad'}{'Norad.Sat.Text'} // "";
+            $detail = $Globals::modules{'norad'}{'Norad.Sat.Detail'} // $detail;
+        } else {
+            next;
         }
 
         # Write customized entry to marker file

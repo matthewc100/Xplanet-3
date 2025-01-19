@@ -1,0 +1,9 @@
+Documentation for Future Developers
+Feature Description
+The debug_print_modules utility in Globals.pm is a diagnostic tool that prints all registered modules and their settings. It is designed to assist in troubleshooting module initialization and ensure settings are correctly loaded from the .ini file.
+
+When to Use
+During module development to verify settings.
+When debugging unexpected behavior related to configuration.
+How to Extend
+If future requirements involve filtering or conditional debugging (e.g., only printing specific modules), you can extend the utility by adding optional parameters.
