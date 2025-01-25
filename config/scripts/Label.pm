@@ -4,6 +4,10 @@ use warnings;
 use Data::Dumper;
 use Time::Local;  # Load the Time::Local module
 
+
+# Reference the global $DEBUG variable from the main script
+use vars qw($DEBUG);
+
 use Globals qw($label_file $labelsettings);  # Import $labelsettings from Globals
 
     # 26 September 2024

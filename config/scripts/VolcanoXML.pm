@@ -79,6 +79,9 @@ use LWP::UserAgent;  # Add this module to fetch the XML from a URL
 use Exporter 'import';
 our @EXPORT_OK = qw(process_volcano_data check_volcano_data);
 
+# Reference the global $DEBUG variable from the main script
+use vars qw($DEBUG);
+
 use Globals qw(
     $volcano_marker_file
     %modules
@@ -156,9 +159,9 @@ sub process_volcano_data {
 
 
                 # Output the required lines in the marker file
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'Volcano.Circle.Color.Inner'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Inner'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"\" color=$volcanosettings->{'Volcano.Circle.Color.Middle'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Middle'}\n";
-                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$volcanosettings->{'Volcano.Circle.Color.Outer'} symbolsize=$volcanosettings->{'Volcano.Circle.Size.Outer'} align=$volcanosettings->{'Volcano.Name.Align'}\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$inner_color symbolsize=$inner_size\n";
+                print $VOLCANO_FH "$latitude  $longitude \"\" color=$middle_color symbolsize=$middle_size\n";
+                print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$outer_color symbolsize=$outer_size align=$align\n";
             }
         }
         

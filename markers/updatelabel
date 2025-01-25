@@ -1,10 +1,10 @@
 # This is the header for UpdateLabel
 # Original idea by Michael Dear
 # Revamped by Matt Coblentz October 2024
-# Updated 18-Jan-2025 18:57
+# Updated 25-Jan-2025 12:03
 # 
--68 -13 "Earthquake information last updated 18-Jan-2025 18:57" color=Green image=none position=pixel
+-68 -13 "Earthquake information last updated 25-Jan-2025 12:03" color=Green image=none position=pixel
 -83 -13 "NORAD information last updated 18-Jan-2025 18:57" color=Green image=none position=pixel
--98 -13 "Cloud information last updated 18-Jan-2025 17:05" color=Green image=none position=pixel
--113 -13 "Storm information not found 08-Jan-2025 17:09" color= image=none position=pixel
--128 -13 "Volcano information last updated 18-Jan-2025 18:57" color=Green image=none position=pixel
+-98 -13 "Cloud information last updated 25-Jan-2025 12:03" color=Green image=none position=pixel
+-113 -13 "Storm information last updated 25-Jan-2025 12:03" color=Green image=none position=pixel
+-128 -13 "Volcano information last updated 25-Jan-2025 12:03" color=Green image=none position=pixel

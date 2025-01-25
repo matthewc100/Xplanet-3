@@ -16,6 +16,8 @@
 use strict;
 use warnings;
 use FindBin qw($Script $Bin);
+use POSIX;
+use Cwd;
 use LWP::UserAgent;
 use LWP::Simple;
 use Time::Local;
@@ -26,8 +28,18 @@ use File::Copy;
 use File::Spec;
 use File::Basename;
 use Getopt::Std;
-use POSIX;
-use Cwd;
+
+# Declare options hash for Getopt::Std
+my %opts;
+
+# Parse command-line options
+getopts('d', \%opts);
+
+# Enable debugging if -d or --debug is passed
+our $DEBUG = $opts{'d'} ? 1 : 0;
+
+# Debugging: Print confirmation if debugging is enabled
+print "Debugging enabled.\n" if $DEBUG;
 
 # Adjust this path to where the module files are located
 use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scripts';  
@@ -105,6 +117,7 @@ use Eclipse qw(
 use EasterEgg qw(easteregg
     ); 
 
+use Fires;
 
 #perl2exe_include "Bzip2.pm";
 #perl2exe_include "FileSpec.pm";
@@ -1219,6 +1232,82 @@ sub update_ini_file() {
     print "Ini File updated to lastest version.\n";
 }
 
+sub process_modules {
+    my ($module_flags_ref) = @_;  # Accept @module_flags as a reference
+    my %module_map = (
+        'clouds'    => sub { CloudUpdate::cloud_update() },
+        'volcanoes' => sub { VolcanoXML::process_volcano_data() },
+        'storms'    => sub { Storm::fetch_and_process_storms() },
+        'quakes'    => sub { Earthquake::get_quakedata() },
+        'norad'     => sub {
+            my $satellite_file = "$xplanet_satellites_dir\\Norad";
+            my $output_tle_file = "$xplanet_satellites_dir\\Norad.tle";
+            my $marker_file = "$xplanet_satellites_dir\\Norad_marker.txt";
+            Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
+        },
+        'fires'     => sub { Fires::run() },
+        # Pass @module_flags for label logic
+        'labelupdate' => sub { Label::WriteoutLabel(@$module_flags_ref, 0) },
+    );
+
+    foreach my $module (sort keys %Globals::modules) {
+        my ($onoff_key) = grep { /onoff$/i } keys %{ $Globals::modules{$module} };
+
+        if ($onoff_key && $Globals::modules{$module}{$onoff_key} == 1) {
+            print "Processing module: $module\n";
+
+            if (exists $module_map{$module}) {
+                $module_map{$module}->();
+            } else {
+                warn "No subroutine mapped for module: $module\n";
+            }
+        } else {
+            print "Module: $module, On/Off: Undefined or Inactive\n";
+        }
+    }
+}
+
+
+
+
+sub collect_module_flags {
+    my @flags;  # Array to store the normalized on/off flags for all modules
+
+    # Loop through all modules in %Globals::modules
+    foreach my $module (sort keys %Globals::modules) {
+        # Debugging: Print the module being processed
+        print "Processing module: $module\n" if $DEBUG;
+
+        # Check if the module contains any key that matches /onoff$/i
+        my ($onoff_key) = grep { /onoff$/i } keys %{ $Globals::modules{$module} };
+
+        if ($onoff_key) {
+            # Normalize the value: "On" => 1, "Off" => 0, undefined => 0
+            my $onoff_value = $Globals::modules{$module}{$onoff_key} // 0;
+            $onoff_value = ($onoff_value =~ /^(1|On)$/i) ? 1 : 0;
+
+            # Debugging: Print the normalized onoff value
+            print "  Found onoff key ($onoff_key): $onoff_value\n" if $DEBUG;
+
+            # Push the normalized value to the flags array
+            push @flags, $onoff_value;
+        } else {
+            # Debugging: Module does not have an onoff key
+            print "  No onoff key for module: $module\n" if $DEBUG;
+        }
+    }
+
+    # Debugging: Print the final collected flags
+    print "Final collected module flags: " . join(", ", @flags) . "\n" if $DEBUG;
+
+    # Return the array of normalized on/off flags
+    return @flags;
+}
+
+
+
+
+
 $hurricane_on_off = 0;
 $volcano_on_off = 0;
 $quake_on_off = 0;
@@ -1237,7 +1326,7 @@ my $EasterEgg_on_off;
 my @eclipsetrack;
 my @eclipsedata;
 my @eclipserefined;
-my $installed =1;
+my $installed=0;
 
 &command_line();
 my @settings;
@@ -1245,147 +1334,44 @@ my @settings;
 
 Globals::get_directory_settings;
 # Debugging the modules section as we refactor Globals.pm
-# print "Main script line 1248 checking Global modules: \n";
-# print %Globals::modules, "\n";
-# print "debugging modules after returning to main \n";
-# Globals::debug_print_modules();
-# print "\n";
+print "Main script line 1248 checking Global modules: \n" if $DEBUG;
+print %Globals::modules, "\n" if $DEBUG;
+print "Main script line 1319 - debugging modules after returning to main \n" if $DEBUG;
+Globals::debug_print_modules() if $DEBUG;
+print "\n" if $DEBUG;
 
 # Updated logic for eclipse override
 if ($eclipseoverride eq 1) {
     $Globals::modules{'eclipses'}{'EclipseOnOff'} = 'Off';
 }
 
-# Updated logic for label settings
-# print "line 1261 - debug label settings ", $Globals::modules{'labelupdate'}{'LabelOnOff'}, "\n";
 
-if ($Globals::modules{'labelupdate'}{'LabelOnOff'} =~ /On/) {
-    $label_on_off = 1;
-} else {
-    $label_on_off = 0;
-}
+# Initialize the on/off status for label updates
+$label_on_off = ($Globals::modules{'labelupdate'}{'LabelOnOff'} // '') =~ /On/ ? 1 : 0;
 
-if ($Globals::modules{'eclipses'}{'EclipseOnOff'} =~ /On/) {
-    $eclipse_on_off = 1;
-}
-else {$eclipse_on_off = 0;
-}
+# Collect the on/off flags for all modules dynamically
+my @module_flags = collect_module_flags();
 
-# EasterEgg setting
-if ($Globals::settings->{'eastereggsurprises'} =~ /Off/) {
-    $EasterEgg_on_off = 0;
-} else {
-    $EasterEgg_on_off = 1;
-}
-
-# Check On/Off Switches
-$clouds_on_off     = $Globals::modules{'clouds'}{'cloudonoff'} // 0;
-$volcano_on_off    = $Globals::modules{'volcanoes'}{'volcanoonoff'} // 0;
-$hurricane_on_off  = $Globals::modules{'storms'}{'stormonoff'} // 0;
-$quake_on_off      = $Globals::modules{'quakes'}{'quakeonoff'} // 0;
-$norad_on_off      = $Globals::modules{'norad'}{'noradonoff'} // 0;
+# Debugging: Print the collected module flags
+print "Main script: Collected module flags: " . join(", ", @module_flags) . "\n" if $DEBUG;
 
 # Check if no module is active
-if ($clouds_on_off != 2 && $clouds_on_off != 1 &&
-    $volcano_on_off != 1 && $hurricane_on_off != 1 &&
-    $quake_on_off != 1 && $norad_on_off != 1 &&
-    $update_label != 1 && $installed != 1) {
+if (!grep { $_ == 1 } @module_flags && $update_label != 1 && $installed != 1) {
+    print "No active modules. Calling get_it_right_lamer.\n";
     &get_it_right_lamer;
-}
+} else {
+    print "Modules are active. Proceeding to process modules.\n";
 
-else {
-    # Clouds Module
-    if ($Globals::modules{'clouds'}{'cloudonoff'} == 1) {
-        CloudUpdate::cloud_update();  # Call cloud_update from the CloudUpdate module
-    }
-    
-    # Hurricane/Storms Module
-    if ($Globals::modules{'storms'}{'stormonoff'} == 1) {
-        Storm::fetch_and_process_storms();
-    }
-    
-    # Earthquakes Module
-    if ($Globals::modules{'quakes'}{'quakeonoff'} == 1) {
-        Earthquake::get_quakedata();
-        $quake_record_number = 1;
-    }
-    
-    # NORAD Module
-    if ($Globals::modules{'norad'}{'NoradOnOff'} == 1) {    
-        my $satellite_file = "$xplanet_satellites_dir\\Norad";
-        my $output_tle_file = "$xplanet_satellites_dir\\Norad.tle";
-        my $marker_file = "$xplanet_satellites_dir\\Norad_marker.txt";
-        
-        Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
-        $norad_record_number = 1;
-    }
-    
-    # Volcano Module
-    if ($Globals::modules{'volcanoes'}{'volcanoonoff'} == 1) {
-        if (VolcanoXML::check_volcano_data()) {
-            VolcanoXML::process_volcano_data();
-        }
-        $volcano_record_number = 1;
-    }
-    
-    # Label Updates
+    # Pass @module_flags to process_modules
+    process_modules(\@module_flags);
+
+    # Update labels if the label module is enabled
     if ($label_on_off == 1) {
-        Label::WriteoutLabel(
-            $quake_record_number, 
-            $norad_record_number, 
-            $cloud_record_number, 
-            $hurricane_record_number, 
-            $volcano_record_number, 
-            0  # Routine update
-        );
+        Label::WriteoutLabel(@module_flags, 0);  # Routine update
     }
-    
-    # Forced Label Updates
+
+    # Perform forced label updates if requested
     if ($update_label == 1) {
-        Label::WriteoutLabel(
-            $quake_record_number, 
-            $norad_record_number, 
-            $cloud_record_number, 
-            $hurricane_record_number, 
-            $volcano_record_number, 
-            1  # Forced update
-        );
-    }
-    
-    # Eclipse Module
-    if ($Globals::modules{'eclipses'}{'eclipseonoff'} == 1) {
-        my $eclipse_record_number = Eclipse::readineclipseindex();
-        my $active_eclipse_number = Eclipse::datacurrent($eclipse_record_number);
-        
-        if ($active_eclipse_number !~ /NONE/) {
-            if ($eclipsedata[$active_eclipse_number]{'detail'} =~ /CRUDE/) {
-                Eclipse::refinedata($active_eclipse_number);
-            }
-            
-            my $track_number = Eclipse::readineclipsetrack($active_eclipse_number);
-            Eclipse::writeouteclipsearccenter($track_number);
-            Eclipse::writeouteclipsemarker($track_number);
-            
-            my $next_eclipse = timegm(0, $eclipsetrack[1]{'minute'}, $eclipsetrack[1]{'hour'}, 
-                                      $eclipsedata[$active_eclipse_number]{'dayofmonth'}, 
-                                      num_of_month($eclipsedata[$active_eclipse_number]{'monthtxt'}), 
-                                      $eclipsedata[$active_eclipse_number]{'year'});
-            my $time_now = time;
-            my $countdown = ($next_eclipse - $time_now);
-            
-            if ($countdown > 0) {
-                Eclipse::writeouteclipsearcboarder($track_number);
-            }
-            
-            if ($Globals::modules{'eclipses'}{'eclipsenotifyonoff'} =~ /On/) {
-                Eclipse::writeouteclipselabel($active_eclipse_number, $track_number, $countdown);
-            }
-        } else {
-            Eclipse::writeouteclipsefilesnone();
-        }
+        Label::WriteoutLabel(@module_flags, 1);  # Forced update
     }
 }
-
-
-
-#print "ON OFF = $volcano_on_off Volcano Record Number = $volcano_record_number \nON OFF = $quake_on_off Quake Record Number = $quake_record_number\nON OFF = $hurricane_on_off Hurricane Record Number = $hurricane_record_number\nON OFF = $clouds_on_off Cloud Record Number = $cloud_record_number\nON OFF = $norad_on_off NORAD Record Number = $norad_record_number\nON OFF = $label_on_off Label\nON OFF = $eclipse_on_off Eclipse\n";

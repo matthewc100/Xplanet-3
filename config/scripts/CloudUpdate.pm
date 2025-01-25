@@ -6,6 +6,9 @@ use Time::Local;
 use HTTP::Request::Common;
 use Config::Simple;  # Load the Config::Simple module
 
+# Reference the global $DEBUG variable from the main script
+use vars qw($DEBUG);
+
 use Globals qw(
     $xplanet_images_dir 
     %modules
@@ -108,7 +111,7 @@ sub should_update_cloud_map {
     my $cloud_file = "$xplanet_images_dir\\$file_name";
 
     # Debug: Print the file path being checked
-    print "Debug: Checking existence of cloud map file: $cloud_file\n";
+    print "CloudUpdate 111 - Debug: Checking existence of cloud map file: $cloud_file\n" if $DEBUG;
 
     # Check if the cloud map file exists
     unless (-e $cloud_file) {
@@ -120,19 +123,19 @@ sub should_update_cloud_map {
     my $last_update_time = get_last_update_time("Cloud");
 
     # Debug: Check if last update time is retrieved
-    print "Debug: Last update time retrieved: " . (defined $last_update_time ? localtime($last_update_time) : "undef") . "\n";
+    print "CloudUpdate 123 - Debug: Last update time retrieved: " . (defined $last_update_time ? localtime($last_update_time) : "undef") . "\n" if $DEBUG;
 
     # Debug: Current time
     my $current_time = time();
-    print "Debug: Current time: " . localtime($current_time) . "\n";
+    print "CloudUpdate 127 - Debug: Current time: " . localtime($current_time) . "\n" if $DEBUG;
 
     # If last update time exists, calculate elapsed time
     if (defined $last_update_time) {
         my $elapsed_time = $current_time - $last_update_time;
 
         # Debug: Print elapsed time and max frequency
-        print "Debug: Elapsed time since last update: $elapsed_time seconds\n";
-        print "Debug: Max frequency (hours): $max_frequency_hours\n";
+        print "CloudUpdate 134 - Debug: Elapsed time since last update: $elapsed_time seconds\n" if $DEBUG;
+        print "CloudUpdate 135 - Debug: Max frequency (hours): $max_frequency_hours\n" if $DEBUG;
 
         if ($elapsed_time < $max_frequency_hours * 3600) {
             print "Cloud data is up to date (last updated: " . localtime($last_update_time) . ")\n";
@@ -151,23 +154,23 @@ sub get_last_update_time {
     my ($type) = @_;
     return undef unless -e $label_file;
 
-    print "Debug: Checking last update time in $label_file for type: $type\n";
+    print "CloudUpdate 154 - Debug: Checking last update time in $label_file for type: $type\n" if $DEBUG;
 
     open(my $fh, '<', $label_file) or die "Cannot open $label_file: $!";
     while (<$fh>) {
-        print "Debug: Line read: $_";  # Debug each line read
+        print "CloudUpdate 158 - Debug: Line read: $_" if $DEBUG;  # Debug each line read
         if (/\b$type\b.*last updated.*?(\d{2}-\w{3}-\d{4} \d{2}:\d{2})/) {
             my $timestamp_str = $1;
 
             # Debug: Print the extracted timestamp
-            print "Debug: Extracted timestamp: $timestamp_str\n";
+            print "CloudUpdate 163 - Debug: Extracted timestamp: $timestamp_str\n" if $DEBUG;
 
             close $fh;
             return convert_to_epoch($timestamp_str);
         }
     }
     close($fh);
-    print "Debug: No matching timestamp found for type: $type\n";
+    print "CloudUpdate 170 - Debug: No matching timestamp found for type: $type\n" if $DEBUG;
     return undef;
 }
 
@@ -175,13 +178,13 @@ sub get_last_update_time {
 # Helper to convert a timestamp string to epoch time
 sub convert_to_epoch {
     my ($timestamp_str) = @_;
-    print "Debug: Converting timestamp: $timestamp_str\n";
+    print "CloudUpdate 178 - Debug: Converting timestamp: $timestamp_str\n" if $DEBUG;
 
     if ($timestamp_str =~ /(\d{2})-(\w{3})-(\d{4}) (\d{2}):(\d{2})/) {
         my ($day, $mon_str, $year, $hour, $min) = ($1, $2, $3, $4, $5);
 
         # Debug: Print extracted components
-        print "Debug: Extracted components - Day: $day, Month: $mon_str, Year: $year, Hour: $hour, Minute: $min\n";
+        print "CloudUpdate 184 - Debug: Extracted components - Day: $day, Month: $mon_str, Year: $year, Hour: $hour, Minute: $min\n" if $DEBUG;
 
         my %months = (
             Jan => 0,  Feb => 1,  Mar => 2,  Apr => 3,  May => 4,  Jun => 5,
@@ -192,7 +195,7 @@ sub convert_to_epoch {
         return timelocal(0, $min, $hour, $day, $mon, $year - 1900);
     }
 
-    print "Debug: Failed to parse timestamp: $timestamp_str\n";
+    print "CloudUpdate 195 - Debug: Failed to parse timestamp: $timestamp_str\n" if $DEBUG;
     return undef;
 }
 

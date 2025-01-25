@@ -4,6 +4,9 @@ use warnings;
 use Exporter 'import';
 use Storable 'dclone';  # Avoiding issues with [MISC section settings]
 
+# Reference the global $DEBUG variable from the main script
+use vars qw($DEBUG);
+
 # Exported variables and functions for use in other modules
 our @EXPORT_OK = qw(
     $settings
@@ -170,10 +173,10 @@ sub get_directory_settings {
     close $fh;  # Close the configuration file
 
     # Debugging: Verify the $settings hash
-    # print "MISC Settings:\n";
-    # foreach my $key (keys %{$settings}) {
-    #     print "  $key => $settings->{$key}\n";
-    # }
+    print "Globals line 173 - MISC Settings:\n" if $DEBUG;
+    foreach my $key (keys %{$settings}) {
+        print "  $key => $settings->{$key}\n" if $DEBUG;
+    }
     # Debugging: Print registered modules before returning control
 }
 
@@ -184,11 +187,11 @@ sub register_module_settings {
     my ($module_name, $settings_hash) = @_;
 
     # Debug: Print the module being registered
-#     print "Globals line 187 - debugging \n";
-#     print "Registering module: $module_name\n";
-#     foreach my $key (keys %{$settings_hash}) {
-#         print "  $key => $settings_hash->{$key}\n";
-#     }
+     print "Globals line 187 - debugging \n" if $DEBUG;
+     print "Registering module: $module_name\n" if $DEBUG;
+     foreach my $key (keys %{$settings_hash}) {
+         print "  $key => $settings_hash->{$key}\n" if $DEBUG;
+     }
 
     my $legacy_var_name = lc($module_name) . 'settings';  # Convert the module name to a legacy variable name
 

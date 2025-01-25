@@ -1,3 +1,3 @@
 25544 "ISS" image=iss_transparent.png transparent={0,0,0} trail={orbit,-5,0,5} color=yellow altcirc=0 trail={orbit,-10,0,5}
-20580 "HST" image=hst.png transparent={0,0,0}
 48274 "" image=sat.png transparent={0,0,0}
+20580 "HST" image=hst.png transparent={0,0,0}

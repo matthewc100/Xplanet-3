@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+# Reference the global $DEBUG variable from the main script
+use vars qw($DEBUG);
+
 use Globals qw(
     %modules
     $xplanet_satellites_dir
@@ -99,11 +102,11 @@ sub process_satellites {
     my @file_satellite_ids = parse_satellite_file($satellite_file) unless @satellite_ids;
     
     # Conflict checking for ISS and HST NORAD numbers
-    if (grep { $_ == 25544 } @file_satellite_ids && $Globals::modules{'norad'}{'Norad.Iss.On.Off'} eq "On") {
+    if (grep { $_ == 25544 } @file_satellite_ids && ($Globals::modules{'norad'}{'Norad.Iss.display'} // '') eq "On") {
         warn "Conflict detected: ISS (25544) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
-    if (grep { $_ == 20580 } @file_satellite_ids && $Globals::modules{'norad'}{'Norad.Hst.On.Off'} eq "On") {
+    if (grep { $_ == 20580 } @file_satellite_ids && ($Globals::modules{'norad'}{'Norad.Hst.display'} // '') eq "On") {
         warn "Conflict detected: HST (20580) is in both the input file and .ini settings. " .
              "Please deactivate one to avoid duplication.";
     }
@@ -121,15 +124,15 @@ sub process_satellites {
         # Customize marker entry based on NORAD settings
         my ($image, $text, $detail) = ("default.png", "", "color=white altcirc=35");
         
-        if ($sat_id == 25544 && $Globals::modules{'norad'}{'Norad.Iss.On.Off'} eq "On") {
+        if ($sat_id == 25544 && ($Globals::modules{'norad'}{'Norad.Iss.display'} // '') eq "On") {
             $image  = $Globals::modules{'norad'}{'Norad.Iss.Image'} // $image;
             $text   = $Globals::modules{'norad'}{'Norad.Iss.Text'} // "ISS";
             $detail = $Globals::modules{'norad'}{'Norad.Iss.Detail'} // $detail;
-        } elsif ($sat_id == 20580 && $Globals::modules{'norad'}{'Norad.Hst.On.Off'} eq "On") {
+        } elsif ($sat_id == 20580 && ($Globals::modules{'norad'}{'Norad.Hst.display'} // '') eq "On") {
             $image  = $Globals::modules{'norad'}{'Norad.Hst.Image'} // $image;
             $text   = $Globals::modules{'norad'}{'Norad.Hst.Text'} // "HST";
             $detail = $Globals::modules{'norad'}{'Norad.Hst.Detail'} // $detail;
-        } elsif ($Globals::modules{'norad'}{'Norad.Sat.On.Off'} eq "On") {
+        } elsif (($Globals::modules{'norad'}{'Norad.Sat.Display'} // '') eq "On") {
             $image  = $Globals::modules{'norad'}{'Norad.Sat.Image'} // $image;
             $text   = $Globals::modules{'norad'}{'Norad.Sat.Text'} // "";
             $detail = $Globals::modules{'norad'}{'Norad.Sat.Detail'} // $detail;
