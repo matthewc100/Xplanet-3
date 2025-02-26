@@ -6,10 +6,8 @@ use Time::Local;
 use HTTP::Request::Common;
 use Config::Simple;  # Load the Config::Simple module
 
-# Reference the global $DEBUG variable from the main script
-use vars qw($DEBUG);
-
 use Globals qw(
+    $DEBUG
     $xplanet_images_dir 
     %modules
     $cloudsettings 
@@ -48,17 +46,29 @@ our @EXPORT_OK = qw(cloud_update);
 # I get my cloud image from the Xeric guys.  Note that the credentials for downloading the cloud map are 
 # privatized in a separate file.  This file is maintained by the user.  There is a .gitignore setting for 
 # this credential file to ensure it is not uploaded to Git.  I'll have to create a readme for that.  
-my $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
+# my $cloud_image_base = "https://secure.xericdesign.com/xplanet/clouds/4096";
 # my $cloud_image_base = "https://xplanetclouds.com/free/coral/";
 #
 
 sub cloud_update {
+    print "CloudUpdate - Debug: \$DEBUG is " . ($DEBUG ? "enabled" : "disabled") . "\n";
+
     # Read credentials from the configuration file
     my $cfg = Config::Simple->new('CloudMap.cfg');
     my $username = $cfg->param('username');
     my $password = $cfg->param('password');
     my $url = $cfg->param('site_link');
     my $file_path = $cfg->param('dest_file_name');
+
+    # Use debug-specific URL if $DEBUG is enabled
+    if ($DEBUG) {
+        print "DEBUG mode: Using test cloudmap URL.\n";
+        $url = "https://raw.githubusercontent.com/matthewc100/Xplanet-3/main/images/clouds-8192.jpg";
+        $username = undef;  # No credentials needed
+        $password = undef;
+    } else {
+        print "Production mode: Using production cloudmap URL.\n";
+    }
 
     my $max_frequency_hours = $Globals::modules{'clouds'}{'Max.Download.Frequency.Hours'} // 6;
     if (!defined $Globals::modules{'clouds'}{'Max.Download.Frequency.Hours'}) {
@@ -72,18 +82,19 @@ sub cloud_update {
         return;
     }
 
-    # Ensure credentials are set
-    die "Username and password must be provided" unless $username && $password;
-
     # Step 2: Proceed with downloading the cloud map
-    print "Downloading cloud map...\n";
+    print "Downloading cloud map from $url...\n";
 
     # Create a user agent object
     my $ua = LWP::UserAgent->new;
 
-    # Create an HTTP request with basic authentication
+    # Create an HTTP request
     my $request = GET $url;
-    $request->authorization_basic($username, $password);
+
+    # Add basic authentication if credentials are provided
+    if ($username && $password) {
+        $request->authorization_basic($username, $password);
+    }
 
     # Perform the request
     my $response = $ua->request($request);
@@ -99,6 +110,8 @@ sub cloud_update {
         die "Failed to download file: " . $response->status_line;
     }
 }
+
+
 
 # Subroutine to check if we should update the cloud map
 sub should_update_cloud_map {

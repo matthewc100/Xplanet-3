@@ -1,0 +1,34 @@
+**Submitter Name:**
+Matthew Coblentz
+
+**Email address:**
+matthew.coblentz@genesys.com
+
+**Executive Sponsor:**
+Len Fischer
+
+**Has the Executive Sponsor approved the messaging?:**
+No
+
+**Title of Communication:**
+Revised competitor picklists
+
+**Region:**
+Global
+
+**Topic:**
+Competitive
+
+**Desired Publish Date:**
+Feb 6, 2025
+
+**Audience:**
+Sales WW
+Sales Leadership
+PreSales
+
+**What is the message?:**
+The CI team, along with Data Governance and other teams, has reduced the size of the picklists used for the competitive data fields (Competition, Vendor in Place, Competitor at Time of Win/Loss, and DSRs) to 1/3 of the previous size. If you don’t see your competitor in the list, pick ‘Other’ and name them in the notes.  
+
+**Desired Platform:**
+Inside Source (due Wednesday for publication Thursday)

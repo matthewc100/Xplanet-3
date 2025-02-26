@@ -109,7 +109,7 @@ sub run {
     my $csv_file = download_fire_data();
     my $fire_data = process_fire_data($csv_file);
     generate_marker_file($fire_data);
-    update_label();
+#    update_label();
 }
 
 1;  # End of module

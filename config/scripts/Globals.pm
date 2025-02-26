@@ -8,7 +8,11 @@ use Storable 'dclone';  # Avoiding issues with [MISC section settings]
 use vars qw($DEBUG);
 
 # Exported variables and functions for use in other modules
+our $DEBUG = 0;  # Default debugging to off
 our @EXPORT_OK = qw(
+    $DEBUG
+    collect_module_flags
+    
     $settings
     %modules
     $xplanet_dir
@@ -173,7 +177,7 @@ sub get_directory_settings {
     close $fh;  # Close the configuration file
 
     # Debugging: Verify the $settings hash
-    print "Globals line 173 - MISC Settings:\n" if $DEBUG;
+    print "Globals line 180 - MISC Settings:\n" if $DEBUG;
     foreach my $key (keys %{$settings}) {
         print "  $key => $settings->{$key}\n" if $DEBUG;
     }
@@ -187,11 +191,23 @@ sub register_module_settings {
     my ($module_name, $settings_hash) = @_;
 
     # Debug: Print the module being registered
-     print "Globals line 187 - debugging \n" if $DEBUG;
-     print "Registering module: $module_name\n" if $DEBUG;
-     foreach my $key (keys %{$settings_hash}) {
-         print "  $key => $settings_hash->{$key}\n" if $DEBUG;
-     }
+    print "Globals line 194 - debugging \n" if $DEBUG;
+
+    # Convert module name to lowercase for consistent lookups
+    my $normalized_module = lc($module_name);
+        print "Registering module: normalized_module\n" if $DEBUG;
+        
+    # Convert all keys in the module settings to lowercase
+    my %normalized_settings;
+    foreach my $key (keys %{$settings_hash}) {
+        my $normalized_key = lc($key);
+        $normalized_settings{$normalized_key} = $settings_hash->{$key};
+        print "  Normalized Key: $normalized_key => $settings_hash->{$key}\n" if $DEBUG;
+    }
+
+    foreach my $key (keys %{$settings_hash}) {
+        print "  $key => $settings_hash->{$key}\n" if $DEBUG;
+    }
 
     my $legacy_var_name = lc($module_name) . 'settings';  # Convert the module name to a legacy variable name
 
@@ -255,6 +271,40 @@ sub get_webpage {
 
     # Return the content if the request is successful, otherwise return 'FAILED'
     return $response->is_success ? $response->decoded_content : 'FAILED';
+}
+
+sub collect_module_flags {
+    my @flags;  # Array to store the normalized on/off flags for all modules
+
+    # Loop through all modules in %Globals::modules
+    foreach my $module (sort keys %Globals::modules) {
+        # Debugging: Print the module being processed
+        print "Processing module: $module\n" if $DEBUG;
+
+        # Check if the module contains any key that matches /onoff$/i
+        my ($onoff_key) = grep { /onoff$/i } keys %{ $Globals::modules{$module} };
+
+        if ($onoff_key) {
+            # Normalize the value: "On" => 1, "Off" => 0, undefined => 0
+            my $onoff_value = $Globals::modules{$module}{$onoff_key} // 0;
+            $onoff_value = ($onoff_value =~ /^(1|On)$/i) ? 1 : 0;
+
+            # Debugging: Print the normalized onoff value
+            print "  Found onoff key ($onoff_key): $onoff_value\n" if $DEBUG;
+
+            # Push the normalized value to the flags array
+            push @flags, $onoff_value;
+        } else {
+            # Debugging: Module does not have an onoff key
+            print "  No onoff key for module: $module\n" if $DEBUG;
+        }
+    }
+
+    # Debugging: Print the final collected flags
+    print "Final collected module flags: " . join(", ", @flags) . "\n" if $DEBUG;
+
+    # Return the array of normalized on/off flags
+    return @flags;
 }
 
 # Debug utility to print all registered modules and their settings

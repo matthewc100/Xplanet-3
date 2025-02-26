@@ -1,71 +1,62 @@
 # This is the header for C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\markers\volcano
 # Original idea by Michael Dear
 # Revamped by Matt Coblentz October 2024
-# Updated 25-Jan-2025 12:03
+# Updated 25-Feb-2025 21:02
 # 
-  64.63   -17.52 "" color=Yellow symbolsize=4
-  64.63   -17.52 "" color=Red symbolsize=8
-  64.63   -17.52 "Bardarbunga" color=Brown symbolsize=12 align=Below
-  -4.02   103.12 "" color=Yellow symbolsize=4
-  -4.02   103.12 "" color=Red symbolsize=8
-  -4.02   103.12 "Dempo" color=Brown symbolsize=12 align=Below
-  64.42   -17.32 "" color=Yellow symbolsize=4
-  64.42   -17.32 "" color=Red symbolsize=8
-  64.42   -17.32 "Grimsvotn" color=Brown symbolsize=12 align=Below
-   1.49   127.63 "" color=Yellow symbolsize=4
-   1.49   127.63 "" color=Red symbolsize=8
-   1.49   127.63 "Ibu" color=Brown symbolsize=12 align=Below
+  55.97   160.59 "" color=Yellow symbolsize=4
+  55.97   160.59 "" color=Red symbolsize=8
+  55.97   160.59 "Bezymianny" color=Brown symbolsize=12 align=Below
+  37.75    15.00 "" color=Yellow symbolsize=4
+  37.75    15.00 "" color=Red symbolsize=8
+  37.75    15.00 "Etna" color=Brown symbolsize=12 align=Below
   19.42  -155.29 "" color=Yellow symbolsize=4
   19.42  -155.29 "" color=Red symbolsize=8
   19.42  -155.29 "Kilauea" color=Brown symbolsize=12 align=Below
-  10.20   -84.23 "" color=Yellow symbolsize=4
-  10.20   -84.23 "" color=Red symbolsize=8
-  10.20   -84.23 "Poas" color=Brown symbolsize=12 align=Below
-  12.61   -86.84 "" color=Yellow symbolsize=4
-  12.61   -86.84 "" color=Red symbolsize=8
-  12.61   -86.84 "Telica" color=Brown symbolsize=12 align=Below
- -37.52   177.18 "" color=Yellow symbolsize=4
- -37.52   177.18 "" color=Red symbolsize=8
- -37.52   177.18 "Whakaari/White Island" color=Brown symbolsize=12 align=Below
-  31.58   130.66 "" color=Yellow symbolsize=4
-  31.58   130.66 "" color=Red symbolsize=8
-  31.58   130.66 "Aira" color=Brown symbolsize=12 align=Below
-  14.47   -90.88 "" color=Yellow symbolsize=4
-  14.47   -90.88 "" color=Red symbolsize=8
-  14.47   -90.88 "Fuego" color=Brown symbolsize=12 align=Below
-  52.08  -176.13 "" color=Yellow symbolsize=4
-  52.08  -176.13 "" color=Red symbolsize=8
-  52.08  -176.13 "Great Sitkin" color=Brown symbolsize=12 align=Below
- -18.99  -174.78 "" color=Yellow symbolsize=4
- -18.99  -174.78 "" color=Red symbolsize=8
- -18.99  -174.78 "Home Reef" color=Brown symbolsize=12 align=Below
-  -8.89   121.64 "" color=Yellow symbolsize=4
-  -8.89   121.64 "" color=Red symbolsize=8
-  -8.89   121.64 "Iya" color=Brown symbolsize=12 align=Below
-  10.41   123.13 "" color=Yellow symbolsize=4
-  10.41   123.13 "" color=Red symbolsize=8
-  10.41   123.13 "Kanlaon" color=Brown symbolsize=12 align=Below
-   2.78   125.41 "" color=Yellow symbolsize=4
-   2.78   125.41 "" color=Red symbolsize=8
-   2.78   125.41 "Karangetang" color=Brown symbolsize=12 align=Below
-  54.05   159.44 "" color=Yellow symbolsize=4
-  54.05   159.44 "" color=Red symbolsize=8
-  54.05   159.44 "Karymsky" color=Brown symbolsize=12 align=Below
+ -23.37   -67.73 "" color=Yellow symbolsize=4
+ -23.37   -67.73 "" color=Red symbolsize=8
+ -23.37   -67.73 "Lascar" color=Brown symbolsize=12 align=Below
   -8.54   122.78 "" color=Yellow symbolsize=4
   -8.54   122.78 "" color=Red symbolsize=8
   -8.54   122.78 "Lewotobi" color=Brown symbolsize=12 align=Below
-  -4.08   145.04 "" color=Yellow symbolsize=4
-  -4.08   145.04 "" color=Red symbolsize=8
-  -4.08   145.04 "Manam" color=Brown symbolsize=12 align=Below
+  -8.27   123.51 "" color=Yellow symbolsize=4
+  -8.27   123.51 "" color=Red symbolsize=8
+  -8.27   123.51 "Lewotolok" color=Brown symbolsize=12 align=Below
+  10.20   -84.23 "" color=Yellow symbolsize=4
+  10.20   -84.23 "" color=Red symbolsize=8
+  10.20   -84.23 "Poas" color=Brown symbolsize=12 align=Below
+  20.42   145.03 "" color=Yellow symbolsize=4
+  20.42   145.03 "" color=Red symbolsize=8
+  20.42   145.03 "Ahyi" color=Brown symbolsize=12 align=Below
+  31.58   130.66 "" color=Yellow symbolsize=4
+  31.58   130.66 "" color=Red symbolsize=8
+  31.58   130.66 "Aira" color=Brown symbolsize=12 align=Below
+   1.70   127.88 "" color=Yellow symbolsize=4
+   1.70   127.88 "" color=Red symbolsize=8
+   1.70   127.88 "Dukono" color=Brown symbolsize=12 align=Below
+ -16.29   -71.41 "" color=Yellow symbolsize=4
+ -16.29   -71.41 "" color=Red symbolsize=8
+ -16.29   -71.41 "El Misti" color=Brown symbolsize=12 align=Below
+  52.08  -176.13 "" color=Yellow symbolsize=4
+  52.08  -176.13 "" color=Red symbolsize=8
+  52.08  -176.13 "Great Sitkin" color=Brown symbolsize=12 align=Below
+ -16.61   -70.85 "" color=Yellow symbolsize=4
+ -16.61   -70.85 "" color=Red symbolsize=8
+ -16.61   -70.85 "Huaynaputina" color=Brown symbolsize=12 align=Below
+   1.49   127.63 "" color=Yellow symbolsize=4
+   1.49   127.63 "" color=Red symbolsize=8
+   1.49   127.63 "Ibu" color=Brown symbolsize=12 align=Below
+  10.41   123.13 "" color=Yellow symbolsize=4
+  10.41   123.13 "" color=Red symbolsize=8
+  10.41   123.13 "Kanlaon" color=Brown symbolsize=12 align=Below
+  54.05   159.44 "" color=Yellow symbolsize=4
+  54.05   159.44 "" color=Red symbolsize=8
+  54.05   159.44 "Karymsky" color=Brown symbolsize=12 align=Below
   -7.54   110.45 "" color=Yellow symbolsize=4
   -7.54   110.45 "" color=Red symbolsize=8
   -7.54   110.45 "Merapi" color=Brown symbolsize=12 align=Below
  -15.79   -71.86 "" color=Yellow symbolsize=4
  -15.79   -71.86 "" color=Red symbolsize=8
  -15.79   -71.86 "Sabancaya" color=Brown symbolsize=12 align=Below
-  14.76   -91.55 "" color=Yellow symbolsize=4
-  14.76   -91.55 "" color=Red symbolsize=8
-  14.76   -91.55 "Santa Maria" color=Brown symbolsize=12 align=Below
   -8.11   112.92 "" color=Yellow symbolsize=4
   -8.11   112.92 "" color=Red symbolsize=8
   -8.11   112.92 "Semeru" color=Brown symbolsize=12 align=Below
@@ -78,6 +69,3 @@
   14.01   121.00 "" color=Yellow symbolsize=4
   14.01   121.00 "" color=Red symbolsize=8
   14.01   121.00 "Taal" color=Brown symbolsize=12 align=Below
- -39.42   -71.93 "" color=Yellow symbolsize=4
- -39.42   -71.93 "" color=Red symbolsize=8
- -39.42   -71.93 "Villarrica" color=Brown symbolsize=12 align=Below

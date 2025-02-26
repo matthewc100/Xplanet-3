@@ -35,12 +35,6 @@ my %opts;
 # Parse command-line options
 getopts('d', \%opts);
 
-# Enable debugging if -d or --debug is passed
-our $DEBUG = $opts{'d'} ? 1 : 0;
-
-# Debugging: Print confirmation if debugging is enabled
-print "Debugging enabled.\n" if $DEBUG;
-
 # Adjust this path to where the module files are located
 use lib 'C:\Users\mcoblent\OneDrive\Xplanet\xplanet-1.3.0\Xplanet-3\config\scripts';  
 
@@ -48,6 +42,9 @@ use Exporter 'import';
 #our @EXPORT_OK = qw(get_file);
 
 use Globals qw(
+    $DEBUG
+    collect_module_flags
+
     $settings
     $xplanet_dir
     $settings_ini_file
@@ -82,6 +79,12 @@ use Globals qw(
 
     $xplanet_images_dir
     );
+
+# Enable debugging if -d or --debug is passed
+our $DEBUG = $opts{'d'} ? 1 : 0;
+
+# Debugging: Print confirmation if debugging is enabled
+print "Debugging enabled.\n" if $DEBUG;
 
 use Storm;
 use Label;
@@ -339,7 +342,7 @@ sub command_line {
             $hurricane_on_off = 1; 
         } elsif ($result eq "-version" || $result eq "-Version") { 
             $xplanetversion = &get_program_version;
-            print "$Script $Client $VERSION\nXplanet Version $xplanetversion\nMichael Dear    10th Feb 2004\nhttp://www.wizabit.eclipse.co.uk/xplanet\n";
+            print "$Script $Client $VERSION\nXplanet Version $xplanetversion\nMichael Dear    10th Feb 2004\nhttps://github.com/matthewc100/Xplanet-3\n";
             exit 1;
         } elsif ($result eq "-update" || $result eq "-Update") { 
             &update_ini_file; 
@@ -457,14 +460,14 @@ sub changelog_print () {
     }
     if ($flag <= 9) {
         print"\n 3.0.0\n";
-        print"  Using RSS where possable\n";
+        print"  Using RSS where possible\n";
         print"  Moved to new platform\n";
         if ($VERSION =~ /1.03.7/) {$flag = 99999;}
     }
     #ending
     print"\nThe items with a (*) by them are accessible if you allow totalmarker to update its files. To add the extra settings to TotalMarker please run:\n\"TotalMarker -install totalmarker patch\" without the quotes.\n";
     print"\nTo see the entire log please type \n\"TotalMarker -install totalmarker |more\" with out the quotes.\n";
-    print"\nVersion: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet";
+    print"\nVersion: $VERSION         Home: https://github.com/matthewc100/Xplanet-3";
     exit 1;
     die;
 }
@@ -492,7 +495,7 @@ to the config file, so you can change them if you wish, they will default
 to no changes from the past operations, if you do nothing, or don't
 run this option.
 
-Version: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet
+Version: $VERSION         Home: https://github.com/matthewc100/Xplanet-3
 EOM
     exit 1;
     
@@ -503,14 +506,13 @@ sub get_it_right_lamer {
 $Script: download and create marker files to be used with xplanet.
 
 This script is driven by the command line, the options are as follows
-* $Script -Quake      This will write the Earthquake marker file.
-* $Script -Storm      This will write the Storm marker and arc files.
-* $Script -Norad      This will write the ISS and ISS.TLE files.
-* $Script -Volcano    This will write the Volcano marker file.
-* $Script -Clouds     This will download the latest cloud image.
+* $Script -d     This will turn on debug mode.
 
-Eclipses and Updatelabel are controlled from the ini file.
-If you are using an old totalmarker then run totalmarker -update
+
+All modules and options are controlled from the ini file using 
+'<module_name>onoff' switches. 
+If you are using an old totalmarker (version 2.6.1) then run totalmarker -update.
+New versions of Totalmarker (v3.0) use single letter command line options.  
 
 Options are set from the ini file.  This is created the first time the
 file is run.  Please note it does require an Internet connection for
@@ -523,8 +525,9 @@ Then add the following to your xplanets config file under earths section
 * -markerfile storm -greatarcfile storm            For Storms
 * -markerfile updatelabel                          For UpdateLabel
 * -markerfile eclipse -greatarcfile eclipse        For Eclipse
+* -markerfile firedataout                          For Fires
 
-Version: $VERSION         Home: http://www.wizabit.eclipse.co.uk/xplanet
+Version: $VERSION         Home: https://github.com/matthewc100/Xplanet-3
 EOM
     exit 1;
 }
@@ -684,7 +687,7 @@ sub install() {
         else {
             print "\nInstalling Files Needed to Run\n";
             open (MF, ">$settings_ini_file");
-            print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See http://www.wizabit.eclipse.co.uk/xplanet/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
+            print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See https://github.com/matthewc100/Xplanet-3/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
             print MF "\#\n\#QUAKE\n\#\nQuakeDetailColorMin=Green\nQuakeDetailColorInt=Yellow\nQuakeDetailColorMax=Red\nQuakeDetailAlign=Above\nQuakeCircleColor=Multi\nQuakePixelMax=\nQuakePixelMin=\nQuakePixelFactor=1\nQuakeImageList=\nQuakeImageTransparent=\nQuakeDetailList=<mag>\nQuakeDetailColor=Multi\nQuakeMinimumSize=0\n";
             print MF "\#\n\#VOLCANO\n\#\nVolcano.Circle.Size.Inner=4\nVolcano.Circle.Size.Middle=8\nVolcano.Circle.Size.Outer=12\nVolcano.Circle.Color.Inner=Yellow\nVolcano.Circle.Color.Middle=Red\nVolcano.Circle.Color.Outer=Brown\nVolcanoNameOnOff=On\nVolcanoNameColor=Brown\nVolcano.Name.Align=Below\nVolcanoImageList=\nVolcanoImageTransparent=\nVolcanoDetailList=\nVolcanoDetailAlign=\nVolcanoDetailColor=\n";
             print MF "\#\n#STORMS\n\#\nStormColorTrackReal=Blue\nStormColorTrackPrediction=SkyBlue\nStormNameOnOff=On\nStormColorName=SkyBlue\nStormAlignName=Above\nStormDetailList=<type>\nStormColorDetail=SkyBlue\nStormAlignDetail=Below\nStormImageList=\nStormImageTransparent=\nStormTrackOnOff=On\n";
@@ -860,7 +863,7 @@ sub update_ini_file() {
     Globals::get_settings();
     print "\nUpgrading Totalmarker.ini File to Latest Version.\n";
     open (MF, ">$settings_ini_file");
-    print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See http://www.wizabit.eclipse.co.uk/xplanet/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
+    print MF "\#Totalmarker ini file\n\#\n\#Leaving the options blank will make the option unused.\n\#See https://github.com/matthewc100/Xplanet-3/pages/TotalMarker.html for details of this file\n#Config File Written by TotalMarker version $VERSION\n";
     
     # QUAKE
     print MF "\#\n\#QUAKE\n\#\nQuakeDetailColorMin=";
@@ -1233,7 +1236,7 @@ sub update_ini_file() {
 }
 
 sub process_modules {
-    my ($module_flags_ref) = @_;  # Accept @module_flags as a reference
+    my ($active_modules_ref) = @_;  # Accept %active_modules as a reference
     my %module_map = (
         'clouds'    => sub { CloudUpdate::cloud_update() },
         'volcanoes' => sub { VolcanoXML::process_volcano_data() },
@@ -1246,64 +1249,33 @@ sub process_modules {
             Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
         },
         'fires'     => sub { Fires::run() },
-        # Pass @module_flags for label logic
-        'labelupdate' => sub { Label::WriteoutLabel(@$module_flags_ref, 0) },
+        'labelupdate' => sub {
+            my ($modules_ref) = @_;  # Capture the passed-in reference explicitly
+            print "process_modules - Debug: Calling WriteoutLabel with modules_ref:\n" if $DEBUG;
+            foreach my $key (keys %$modules_ref) {
+                print "  $key => $modules_ref->{$key}\n" if $DEBUG;
+            }
+            Label::WriteoutLabel($modules_ref);  # Now passing the explicit parameter
+        },
     );
 
-    foreach my $module (sort keys %Globals::modules) {
+    print "Main script line 1262 - Debug: Checking modules for .position key:\n" if $DEBUG;
+    foreach my $module (keys %Globals::modules) {
         my ($onoff_key) = grep { /onoff$/i } keys %{ $Globals::modules{$module} };
 
         if ($onoff_key && $Globals::modules{$module}{$onoff_key} == 1) {
-            print "Processing module: $module\n";
+            print "Processing module: $module\n" if $DEBUG;
 
             if (exists $module_map{$module}) {
-                $module_map{$module}->();
+                $module_map{$module}->($active_modules_ref);
             } else {
-                warn "No subroutine mapped for module: $module\n";
+                warn "No subroutine mapped for module: $module\n" if $DEBUG;
             }
         } else {
-            print "Module: $module, On/Off: Undefined or Inactive\n";
+            print "Module: $module, On/Off: Undefined or Inactive\n" if $DEBUG;
         }
     }
 }
-
-
-
-
-sub collect_module_flags {
-    my @flags;  # Array to store the normalized on/off flags for all modules
-
-    # Loop through all modules in %Globals::modules
-    foreach my $module (sort keys %Globals::modules) {
-        # Debugging: Print the module being processed
-        print "Processing module: $module\n" if $DEBUG;
-
-        # Check if the module contains any key that matches /onoff$/i
-        my ($onoff_key) = grep { /onoff$/i } keys %{ $Globals::modules{$module} };
-
-        if ($onoff_key) {
-            # Normalize the value: "On" => 1, "Off" => 0, undefined => 0
-            my $onoff_value = $Globals::modules{$module}{$onoff_key} // 0;
-            $onoff_value = ($onoff_value =~ /^(1|On)$/i) ? 1 : 0;
-
-            # Debugging: Print the normalized onoff value
-            print "  Found onoff key ($onoff_key): $onoff_value\n" if $DEBUG;
-
-            # Push the normalized value to the flags array
-            push @flags, $onoff_value;
-        } else {
-            # Debugging: Module does not have an onoff key
-            print "  No onoff key for module: $module\n" if $DEBUG;
-        }
-    }
-
-    # Debugging: Print the final collected flags
-    print "Final collected module flags: " . join(", ", @flags) . "\n" if $DEBUG;
-
-    # Return the array of normalized on/off flags
-    return @flags;
-}
-
 
 
 
@@ -1331,47 +1303,48 @@ my $installed=0;
 &command_line();
 my @settings;
 
+Globals::get_directory_settings();
 
-Globals::get_directory_settings;
-# Debugging the modules section as we refactor Globals.pm
-print "Main script line 1248 checking Global modules: \n" if $DEBUG;
+# Debugging the modules section
+print "Main script line 1334 checking Global modules: \n" if $DEBUG;
 print %Globals::modules, "\n" if $DEBUG;
-print "Main script line 1319 - debugging modules after returning to main \n" if $DEBUG;
 Globals::debug_print_modules() if $DEBUG;
-print "\n" if $DEBUG;
 
-# Updated logic for eclipse override
+# Handle Eclipse override
 if ($eclipseoverride eq 1) {
     $Globals::modules{'eclipses'}{'EclipseOnOff'} = 'Off';
 }
 
-
 # Initialize the on/off status for label updates
-$label_on_off = ($Globals::modules{'labelupdate'}{'LabelOnOff'} // '') =~ /On/ ? 1 : 0;
+$label_on_off = ($Globals::modules{'labels'}{'labelsdisplay'} // 1);
 
-# Collect the on/off flags for all modules dynamically
-my @module_flags = collect_module_flags();
+# Collect active modules dynamically
+my %active_modules;
+foreach my $module (keys %Globals::modules) {
+    # Construct the key dynamically
+    my $onoff_key = lc($module) . 'onoff';
+    $active_modules{$module} = $Globals::modules{$module}{$onoff_key} // 0;
 
-# Debugging: Print the collected module flags
-print "Main script: Collected module flags: " . join(", ", @module_flags) . "\n" if $DEBUG;
+    # Debugging: Confirm constructed onoff key and value
+    print "Main script 1327 - Constructed key: $onoff_key => $active_modules{$module}\n" if $DEBUG;
+}
 
-# Check if no module is active
-if (!grep { $_ == 1 } @module_flags && $update_label != 1 && $installed != 1) {
-    print "No active modules. Calling get_it_right_lamer.\n";
-    &get_it_right_lamer;
-} else {
-    print "Modules are active. Proceeding to process modules.\n";
+# Collect on/off flags using Globals::collect_module_flags
+my @module_flags = Globals::collect_module_flags();
 
-    # Pass @module_flags to process_modules
-    process_modules(\@module_flags);
-
-    # Update labels if the label module is enabled
-    if ($label_on_off == 1) {
-        Label::WriteoutLabel(@module_flags, 0);  # Routine update
+# Debugging: Print active_modules before calling WriteoutLabel
+if ($DEBUG) {
+    print "Main script 1335 - Debug: Active modules before WriteoutLabel:\n";
+    foreach my $module (keys %active_modules) {
+        print "  $module => $active_modules{$module}\n";
     }
+}
 
-    # Perform forced label updates if requested
-    if ($update_label == 1) {
-        Label::WriteoutLabel(@module_flags, 1);  # Forced update
-    }
+# Process modules
+process_modules(\%active_modules);
+
+# Update labels if enabled
+print "Main script line 1345 - \n";
+if ($label_on_off) {
+    Label::WriteoutLabel(\%active_modules);  # Routine update
 }
