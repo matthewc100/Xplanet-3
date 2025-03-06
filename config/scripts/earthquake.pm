@@ -56,7 +56,6 @@ my $quake_location_CSV_30D_10 = "https://earthquake.usgs.gov/earthquakes/feed/v1
 my $quake_location_CSV_30D_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv";
 
 # Subroutine to draw a circle based on magnitude
-# Subroutine to draw a circle based on magnitude
 sub drawcircle {
     my ($mag) = @_;
 
@@ -127,11 +126,11 @@ sub colourisemag($) {
     
     # Normalize quakecirclecolor to lowercase for consistent handling
     my $quake_color = $Globals::modules{'quakes'}{'Quake.Circle.Color'} // '';  # Default to '' if undefined
-   
+
     my $result;  # Store the return value temporarily
 
     # Check if quakecirclecolor is not 'multi'
-    if ($quake_color ne 'multi') {
+    if (lc($quake_color) ne 'multi') {
         $result = $Globals::modules{'quakes'}{'Quake.Circle.Color'};  # Use the original value
     } else {
         # Traditional if-elsif-else structure for color selection based on magnitude

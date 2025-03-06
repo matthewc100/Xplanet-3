@@ -51,7 +51,6 @@ our @EXPORT_OK = qw(cloud_update);
 #
 
 sub cloud_update {
-    print "CloudUpdate - Debug: \$DEBUG is " . ($DEBUG ? "enabled" : "disabled") . "\n";
 
     # Read credentials from the configuration file
     my $cfg = Config::Simple->new('CloudMap.cfg');
@@ -66,8 +65,6 @@ sub cloud_update {
         $url = "https://raw.githubusercontent.com/matthewc100/Xplanet-3/main/images/clouds-8192.jpg";
         $username = undef;  # No credentials needed
         $password = undef;
-    } else {
-        print "Production mode: Using production cloudmap URL.\n";
     }
 
     my $max_frequency_hours = $Globals::modules{'clouds'}{'Max.Download.Frequency.Hours'} // 6;

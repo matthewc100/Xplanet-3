@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 use Storable 'dclone';  # Avoiding issues with [MISC section settings]
+use Time::Local;  # Required for convert_to_epoch
+
 
 # Reference the global $DEBUG variable from the main script
 use vars qw($DEBUG);
@@ -12,6 +14,7 @@ our $DEBUG = 0;  # Default debugging to off
 our @EXPORT_OK = qw(
     $DEBUG
     collect_module_flags
+    convert_to_epoch
     
     $settings
     %modules
@@ -272,6 +275,25 @@ sub get_webpage {
     # Return the content if the request is successful, otherwise return 'FAILED'
     return $response->is_success ? $response->decoded_content : 'FAILED';
 }
+
+sub convert_to_epoch {
+    my ($timestamp) = @_;
+
+    if ($timestamp =~ /(\d{2})-(\w{3})-(\d{4}) (\d{2}):(\d{2})/) {
+        my ($day, $month_str, $year, $hour, $minute) = ($1, $2, $3, $4, $5);
+        
+        my %months = (
+            Jan => 0,  Feb => 1,  Mar => 2,  Apr => 3,  May => 4,  Jun => 5,
+            Jul => 6,  Aug => 7,  Sep => 8,  Oct => 9,  Nov => 10, Dec => 11
+        );
+
+        my $month = $months{$month_str};
+        return timelocal(0, $minute, $hour, $day, $month, $year - 1900);
+    }
+
+    return 0; # Return 0 if invalid timestamp
+}
+
 
 sub collect_module_flags {
     my @flags;  # Array to store the normalized on/off flags for all modules

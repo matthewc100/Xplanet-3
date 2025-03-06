@@ -1249,14 +1249,14 @@ sub process_modules {
             Norad::process_satellites($satellite_file, $output_tle_file, $marker_file);
         },
         'fires'     => sub { Fires::run() },
-        'labelupdate' => sub {
-            my ($modules_ref) = @_;  # Capture the passed-in reference explicitly
-            print "process_modules - Debug: Calling WriteoutLabel with modules_ref:\n" if $DEBUG;
-            foreach my $key (keys %$modules_ref) {
-                print "  $key => $modules_ref->{$key}\n" if $DEBUG;
-            }
-            Label::WriteoutLabel($modules_ref);  # Now passing the explicit parameter
-        },
+#        'labelupdate' => sub {
+#            my ($modules_ref) = @_;  # Capture the passed-in reference explicitly
+#            print "process_modules - Debug: Calling WriteoutLabel with modules_ref:\n" if $DEBUG;
+#            foreach my $key (keys %$modules_ref) {
+#                print "  $key => $modules_ref->{$key}\n" if $DEBUG;
+#            }
+#            Label::WriteoutLabel($modules_ref);  # Now passing the explicit parameter
+#        },
     );
 
     print "Main script line 1262 - Debug: Checking modules for .position key:\n" if $DEBUG;
@@ -1344,7 +1344,6 @@ if ($DEBUG) {
 process_modules(\%active_modules);
 
 # Update labels if enabled
-print "Main script line 1345 - \n";
 if ($label_on_off) {
     Label::WriteoutLabel(\%active_modules);  # Routine update
 }
