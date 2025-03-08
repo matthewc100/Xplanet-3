@@ -97,10 +97,32 @@ sub fetch_and_save_tle_data {
 sub process_satellites {
     my ($satellite_file, $output_tle_file, $marker_file) = @_;
 
-    # Step 1: Get NORAD IDs from settings or satellite file
+    # Step 1: Determine if NORAD update is necessary
+    my $update_interval = $Globals::modules{'labels'}{'NORAD.update_interval'} // 86400;  # Default: 7 days (604800 sec)
+
+    unless ($update_interval =~ /^\d+$/) {
+        warn "Norad::process_satellites - Warning: norad.update_interval not found or invalid in .ini! Using default: 604800 seconds (7 days)";
+        $update_interval = 86400;  # Default to 1 day if missing or invalid
+    }
+
+    # Get last modified time of the marker file
+    my $last_update_time = (stat($marker_file))[9] // 0;
+    my $current_time = time();
+    my $time_since_last_update = $current_time - $last_update_time;
+
+    # If the file is too recent, skip the update
+    if (-e $marker_file && $time_since_last_update < $update_interval) {
+        my $remaining_time = $update_interval - $time_since_last_update;
+        print "Norad::process_satellites - NORAD update skipped: Next update allowed in $remaining_time seconds.\n";
+        return;
+    }
+
+    print "Norad::process_satellites - NORAD update is due. Proceeding with update...\n";
+
+    # Step 2: Get NORAD IDs from settings or satellite file
     my @satellite_ids = get_tle_numbers_from_settings();
     my @file_satellite_ids = parse_satellite_file($satellite_file) unless @satellite_ids;
-    
+
     # Conflict checking for ISS and HST NORAD numbers
     if (grep { $_ == 25544 } @file_satellite_ids && ($Globals::modules{'norad'}{'Norad.Iss.display'} // '') eq "On") {
         warn "Conflict detected: ISS (25544) is in both the input file and .ini settings. " .
@@ -114,16 +136,15 @@ sub process_satellites {
     # Combine settings and file IDs
     @satellite_ids = (@satellite_ids, @file_satellite_ids) unless @satellite_ids;
 
-    # Step 2: Fetch TLE data for each satellite and save to TLE file
+    # Step 3: Fetch TLE data for each satellite and save to TLE file
     fetch_and_save_tle_data(\@satellite_ids, $output_tle_file);
 
-    # Step 3: Generate marker file with satellite-specific settings
+    # Step 4: Generate marker file with satellite-specific settings
     open my $marker_fh, '>', $marker_file or die "Could not open marker file '$marker_file': $!";
 
     foreach my $sat_id (@satellite_ids) {
-        # Customize marker entry based on NORAD settings
         my ($image, $text, $detail) = ("default.png", "", "color=white altcirc=35");
-        
+
         if ($sat_id == 25544 && ($Globals::modules{'norad'}{'Norad.Iss.display'} // '') eq "On") {
             $image  = $Globals::modules{'norad'}{'Norad.Iss.Image'} // $image;
             $text   = $Globals::modules{'norad'}{'Norad.Iss.Text'} // "ISS";
@@ -148,5 +169,6 @@ sub process_satellites {
     # Message indicating successful update of the marker file
     print "NORAD Marker file successfully updated: $marker_file\n";
 }
+
 
 1; # End of the module

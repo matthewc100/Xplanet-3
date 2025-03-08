@@ -197,7 +197,6 @@ sub WriteoutQuake {
     }
 
     close($qmf) or die "Cannot close $quake_marker_file: $!";
-    print "Updated quake marker file: $quake_marker_file\n";
 }
 
 # Subroutine to get quake feed based on reporting duration and size
@@ -248,6 +247,20 @@ sub get_Correct_quake_Feed {
 
 # Subroutine to get quake data from the quake feed
 sub get_quakedata {
+    my $update_interval = $Globals::modules{'labels'}{'Earthquake.update_interval'} // 86400; # Default 24h if not set
+    my $last_update_time = -e $quake_marker_file ? (stat($quake_marker_file))[9] : 0;
+    my $current_time = time();
+    my $time_since_last_update = $current_time - $last_update_time;
+
+    # **Check update frequency**
+    if ($time_since_last_update < $update_interval) {
+        my $next_update_in = $update_interval - $time_since_last_update;
+        print "Earthquake update skipped: Next update allowed in $next_update_in seconds.\n";
+        return;
+    }
+
+    print "Fetching earthquake data...\n";
+
     my $ua = LWP::UserAgent->new;
     $ua->timeout(60);
     $ua->env_proxy;
@@ -270,15 +283,21 @@ sub get_quakedata {
             }
             push @quakedata, $line;
         }
-        # After retrieving quake data, call WriteoutQuake and pass the data
-        WriteoutQuake(1, @quakedata);  # Assuming you want to draw circles
+
+        # **Write the new quake data**
+        WriteoutQuake(1, @quakedata);  
+
+        # **Update the timestamp on the marker file**
+        utime(undef, undef, $quake_marker_file);
+        print "Earthquake marker file updated: $quake_marker_file\n";
     } else {
-        print "Failed to retrieve quake data: ", $res->status_line, "\n";
+        print "Earthquake::get_quakedata - Failed to retrieve quake data: ", $res->status_line, "\n";
         return FAILED;
     }
 
     return 1;
 }
+
 
 
 1; # End of the module

@@ -4,15 +4,14 @@ use strict;
 use warnings;
 use LWP::Simple;
 use Text::CSV;
-use File::Spec;
 
-# Reference the global $DEBUG variable from the main script
-use vars qw($DEBUG);
-
+use File::stat;
 use Globals qw(
-    %modules 
-    $xplanet_markers_dir);
-use Label;
+    $DEBUG
+    $xplanet_markers_dir
+    %modules
+    convert_to_epoch
+);
 
 # Function to download fire data
 sub download_fire_data {
@@ -98,18 +97,42 @@ sub generate_marker_file {
     print "Fire marker file created: $output_file\n";  # Confirm successful creation
 }
 
-
-# Function to update the label
-sub update_label {
-    Label::WriteoutLabel(undef, undef, undef, undef, undef, 1);
-}
-
 # Main function for Fires module
 sub run {
-    my $csv_file = download_fire_data();
-    my $fire_data = process_fire_data($csv_file);
-    generate_marker_file($fire_data);
-#    update_label();
-}
+    my $fire_marker_file = "$xplanet_markers_dir/firedataout";
 
+    # 🔍 **Retrieve Fire.update_interval from `[LABELS]`**
+    my $update_frequency = $modules{'labels'}{'Fire.update_interval'};
+
+    # **Check if Fire.update_interval is missing or invalid**
+    if (!defined $update_frequency || $update_frequency !~ /^\d+$/) {
+        print "⚠️ Fires::run - Warning: Fire.update_interval not found or invalid in .ini! Using default: 43200 seconds (12h)\n";
+        $update_frequency = 43200;  # Default to 12 hours
+    }
+
+    # Check last modified timestamp of fire marker file
+    if (-e $fire_marker_file) {
+        my $file_stat = stat($fire_marker_file);
+        my $last_modified = $file_stat->mtime;
+
+        # Get current time in epoch
+        my $current_time = time();
+        my $time_diff = $current_time - $last_modified;
+
+        # Debugging: Print update check info
+        print "Fires::run - Debug: Fire marker last updated at: " . scalar localtime($last_modified) . "\n" if $DEBUG;
+        print "Fires::run - Debug: Update frequency set to: $update_frequency seconds\n" if $DEBUG;
+        print "Fires::run - Debug: Time since last update: $time_diff seconds\n" if $DEBUG;
+
+        if ($time_diff < $update_frequency) {
+            print "Fires::run - Fire update skipped: Next update allowed in " . ($update_frequency - $time_diff) . " seconds.\n";
+            return;  # **Skip updating fires**
+        }
+    } else {
+        print "Fires::run - No existing fire marker file found. Proceeding with update...\n" if $DEBUG;
+    }
+
+    # **Proceed with normal fire update process**
+    download_fire_data($fire_marker_file);
+}
 1;  # End of module

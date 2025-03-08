@@ -1,8 +1,14 @@
 # This is the header for Earthquake
 # Original idea by Michael Dear
 # Revamped by Matt Coblentz October 2024
-# Updated 06-Mar-2025 12:10
+# Updated 07-Mar-2025 17:02
 # 
+    5.46     94.71 "" color=Yellow symbolsize=48
+    5.46     94.71 "5.4" color=Yellow align=Above
+  -14.67    -72.08 "" color=Yellow symbolsize=48
+  -14.67    -72.08 "5.4" color=Yellow align=Above
+   -2.53    121.05 "" color=Yellow symbolsize=45
+   -2.53    121.05 "5.0" color=Red align=Above
   -23.39    -69.07 "" color=Salmon symbolsize=54
   -23.39    -69.07 "6.1" color=Yellow align=Above
    -4.89     68.56 "" color=Yellow symbolsize=45
@@ -47,17 +53,3 @@
     7.89    126.64 "5.0" color=Red align=Above
     2.83    -79.46 "" color=Yellow symbolsize=45
     2.83    -79.46 "5.0" color=Red align=Above
-   -6.01    130.70 "" color=DarkGoldenrod symbolsize=49
-   -6.01    130.70 "5.5" color=Yellow align=Above
-   18.35    -99.33 "" color=Yellow symbolsize=45
-   18.35    -99.33 "5.0" color=Red align=Above
-   73.15    132.72 "" color=Yellow symbolsize=47
-   73.15    132.72 "5.2" color=Yellow align=Above
-  -23.61   -175.45 "" color=Yellow symbolsize=45
-  -23.61   -175.45 "5.0" color=Red align=Above
-   52.22   -176.04 "" color=Yellow symbolsize=45
-   52.22   -176.04 "5.0" color=Red align=Above
-   27.83     85.97 "" color=DarkGoldenrod symbolsize=49
-   27.83     85.97 "5.5" color=Yellow align=Above
-  -52.46     26.06 "" color=Yellow symbolsize=45
-  -52.46     26.06 "5.0" color=Red align=Above

@@ -75,9 +75,11 @@ package VolcanoXML;
 use strict;
 use warnings;
 use XML::LibXML;
-use LWP::UserAgent;  # Add this module to fetch the XML from a URL
+use LWP::UserAgent;
+use File::stat;  # Required for file timestamps
 use Exporter 'import';
-our @EXPORT_OK = qw(process_volcano_data check_volcano_data);
+
+our @EXPORT_OK = qw(process_volcano_data);
 
 # Reference the global $DEBUG variable from the main script
 use vars qw($DEBUG);
@@ -86,69 +88,64 @@ use Globals qw(
     $volcano_marker_file
     %modules
     $volcanosettings
-    );
+    convert_to_epoch
+);
 
-########################################################
-#  CONFIGURATION DATA
-#  The location of the volcano data is in an XML file defined below
-########################################################
-# The volcano location URL is now handled internally within the module
+# Define the XML data source
 my $volcano_location = "https://volcano.si.edu/news/WeeklyVolcanoCAP.xml";
 
-# Process the volcano data from the XML location and write to the marker file
 sub process_volcano_data {
-    # Create a user agent to fetch the XML data from the URL
-    my $ua = LWP::UserAgent->new();
-    $ua->timeout(15);  # Set a timeout for the request
+    # Retrieve update interval from the .ini file
+    my $update_interval = $Globals::modules{'labels'}{'Volcano.update_interval'};  
 
-    # Fetch the XML data from the URL
+    # If update interval is missing, warn and set default
+    unless (defined $update_interval && $update_interval =~ /^\d+$/) {
+        warn "⚠️ VolcanoXML::process_volcano_data - Warning: Volcano.update_interval not found or invalid in .ini! Using default: 86400 seconds (24h).\n";
+        $update_interval = 86400;  # Default: 24 hours
+    }
+
+    # Check last modification time of the volcano marker file
+    if (-f $volcano_marker_file) {
+        my $last_update_time = (stat($volcano_marker_file))->mtime;
+        my $time_elapsed = time() - $last_update_time;
+
+        # Skip update if it's not time yet
+        if ($time_elapsed < $update_interval) {
+            my $next_update_in = $update_interval - $time_elapsed;
+            print "VolcanoXML::process_volcano_data - Volcano update skipped: Next update allowed in $next_update_in seconds.\n";
+            return;
+        }
+    }
+
+    # Proceed with fetching volcano data
+    my $ua = LWP::UserAgent->new();
+    $ua->timeout(15);
+
     my $response = $ua->get($volcano_location);
 
-    # Check if the request was successful
     if ($response->is_success) {
         my $xml_content = $response->decoded_content;
-
-        # Create a new XML::LibXML parser object and parse the XML content
         my $parser = XML::LibXML->new();
-        my $doc = $parser->load_xml(string => $xml_content);  # Load XML from the string
-
-        # Dynamically extract the namespace from the root element
+        my $doc = $parser->load_xml(string => $xml_content);
         my $root_element = $doc->documentElement();
         my $namespace_uri = $root_element->namespaceURI();
 
-        # Register the namespace dynamically with a prefix (e.g., 'ns')
         my $xpc = XML::LibXML::XPathContext->new($doc);
-        $xpc->registerNs('ns', $namespace_uri);  # Register the detected namespace
-
-        # Find all <ns:info> nodes (use the namespace prefix 'ns')
+        $xpc->registerNs('ns', $namespace_uri);
         my @info_nodes = $xpc->findnodes('//ns:info');
 
-        # Open the volcano marker file for writing
-        open(my $VOLCANO_FH, '>', $volcano_marker_file) 
-            or die "Cannot open $volcano_marker_file: $!";
+        open(my $VOLCANO_FH, '>', $volcano_marker_file) or die "Cannot open $volcano_marker_file: $!";
+        Label::file_header($volcano_marker_file, $VOLCANO_FH);
 
-        # Pass the filehandle (VOLCANO_FH) to Label::file_header for writing the header.
-        Label::file_header($volcano_marker_file, $VOLCANO_FH);  # Pass filehandle directly, not as a glob
-        
-        # Iterate over each <info> element in the XML file
-        foreach my $info ($xpc->findnodes('//ns:info')) {  # Ensure to use $xpc with the correct namespace      
+        foreach my $info ($xpc->findnodes('//ns:info')) {
+            my $volcano_name = $xpc->findvalue('./ns:eventCode[ns:valueName="Volcano Name"]/ns:value', $info);
+            my $geo_circle = $xpc->findvalue('./ns:area/ns:circle[1]', $info);
 
-            # Extract the volcano name using the namespace prefix
-            my $volcano_name = $xpc->findvalue('./ns:eventCode[ns:valueName="Volcano Name"]/ns:value', $info);      
-
-            # Extract the first geo-coordinates (latitude and longitude) from the first <ns:circle> element
-            my $geo_circle = $xpc->findvalue('./ns:area/ns:circle[1]', $info);  # Only grab the first circle element        
-
-            # Check if the circle has valid coordinates (WGS 84 coordinate pair followed by radius)
             if ($geo_circle =~ /^(-?\d+\.\d+),(-?\d+\.\d+)\s+\d+/) {
-                my $latitude  = $1;  # Extracted latitude
-                my $longitude = $2;  # Extracted longitude      
-
-                # Format latitude and longitude with two decimal places
+                my ($latitude, $longitude) = ($1, $2);
                 $latitude  = sprintf("% 7.2f", $latitude);
                 $longitude = sprintf("% 7.2f", $longitude);
-                
-                # Fetch settings from %Globals::modules
+
                 my $inner_color  = $Globals::modules{'volcanoes'}{'Volcano.Circle.Color.Inner'} // 'Yellow';
                 my $inner_size   = $Globals::modules{'volcanoes'}{'Volcano.Circle.Size.Inner'}  // 4;
                 my $middle_color = $Globals::modules{'volcanoes'}{'Volcano.Circle.Color.Middle'} // 'Red';
@@ -157,43 +154,17 @@ sub process_volcano_data {
                 my $outer_size   = $Globals::modules{'volcanoes'}{'Volcano.Circle.Size.Outer'}  // 12;
                 my $align        = $Globals::modules{'volcanoes'}{'Volcano.Name.Align'}        // 'Below';
 
-
-                # Output the required lines in the marker file
                 print $VOLCANO_FH "$latitude  $longitude \"\" color=$inner_color symbolsize=$inner_size\n";
                 print $VOLCANO_FH "$latitude  $longitude \"\" color=$middle_color symbolsize=$middle_size\n";
                 print $VOLCANO_FH "$latitude  $longitude \"$volcano_name\" color=$outer_color symbolsize=$outer_size align=$align\n";
             }
         }
-        
-        # Close the marker file
+
         close($VOLCANO_FH) or die "Cannot close $volcano_marker_file: $!";
         print "Volcano marker file updated: $volcano_marker_file\n";
     } else {
-        # If the request fails, print an error message and exit
         die "Failed to fetch XML from $volcano_location: " . $response->status_line;
     }
 }
 
-# Check whether the volcano data is up to date
-sub check_volcano_data {
-    my $MaxDownloadFrequencyHours = 24;
-
-    # Check if the volcano marker file exists and its age
-    if (-f $volcano_marker_file) {
-        my @Stats = stat($volcano_marker_file);
-        my $FileAge = (time() - $Stats[9]);
-
-        # If the file is up to date, return false (no need to update)
-        if ($FileAge < 60 * 60 * $MaxDownloadFrequencyHours) {
-            my $FileAgeHours = sprintf("%.1f", $FileAge / 3600);
-            print "Volcano data is up to date! Only . $FileAgeHours . hours old\n";
-            print "Volcano marker file: $volcano_marker_file\n";
-            return 0;
-        }
-    }
-
-    # If the file doesn't exist or is outdated, return true (needs updating)
-    return 1;
-}
-
-1; # End of the module
+1;  # End of module
